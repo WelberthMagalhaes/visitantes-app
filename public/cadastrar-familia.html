@@ -121,6 +121,10 @@
           <button type="button" onclick="this.parentElement.remove()">Remover</button>
         `;
         membrosDiv.appendChild(novoMembro);
+        
+        // Aplica autocomplete no novo input
+        const novoInput = novoMembro.querySelector(".nome-membro");
+        setupAutocomplete(novoInput);
       }
 
       // Cadastrar família
@@ -142,12 +146,88 @@
         }
       }
 
+      // Autocomplete para membros
+      let visitantesCache = [];
+
+      async function carregarVisitantes() {
+        if (!autenticado) return;
+        try {
+          const res = await fetch((BASE || "") + "/interno/visitantes/all");
+          if (res.ok) {
+            visitantesCache = await res.json();
+          }
+        } catch (err) {
+          console.error("Erro carregando visitantes:", err);
+        }
+      }
+
+      function setupAutocomplete(input) {
+        const wrapper = document.createElement("div");
+        wrapper.style.position = "relative";
+        input.parentNode.insertBefore(wrapper, input);
+        wrapper.appendChild(input);
+
+        const sugestoes = document.createElement("div");
+        sugestoes.className = "sugestoes";
+        sugestoes.style.position = "absolute";
+        sugestoes.style.top = "100%";
+        sugestoes.style.left = "0";
+        sugestoes.style.right = "0";
+        sugestoes.style.background = "white";
+        sugestoes.style.border = "1px solid #ccc";
+        sugestoes.style.maxHeight = "200px";
+        sugestoes.style.overflowY = "auto";
+        sugestoes.style.zIndex = "1000";
+        wrapper.appendChild(sugestoes);
+
+        input.addEventListener("input", () => {
+          const valor = input.value.toLowerCase();
+          sugestoes.innerHTML = "";
+
+          if (!valor) return;
+
+          const resultados = visitantesCache.filter(v => 
+            v.nome.toLowerCase().includes(valor)
+          ).slice(0, 5);
+
+          resultados.forEach(v => {
+            const item = document.createElement("div");
+            item.style.padding = "8px";
+            item.style.cursor = "pointer";
+            item.textContent = `${v.nome} (${v.telefone || "-"})`;
+            item.onmouseover = () => item.style.background = "#f0f0f0";
+            item.onmouseout = () => item.style.background = "white";
+            item.onclick = () => {
+              input.value = v.nome;
+              const membro = input.closest(".membro");
+              if (membro) {
+                const telInput = membro.querySelector(".telefone-membro");
+                if (telInput) telInput.value = v.telefone || "";
+              }
+              sugestoes.innerHTML = "";
+            };
+            sugestoes.appendChild(item);
+          });
+        });
+
+        document.addEventListener("click", (e) => {
+          if (!wrapper.contains(e.target)) {
+            sugestoes.innerHTML = "";
+          }
+        });
+      }
+
       // Inicialização
       document.addEventListener("DOMContentLoaded", async () => {
         // Verifica se já está autenticado
         const jaAutenticado = await verificarSessao();
         if (jaAutenticado) {
           mostrarPrincipal();
+          await carregarVisitantes();
+          // Aplica autocomplete no primeiro input
+          document.querySelectorAll(".nome-membro").forEach(input => {
+            setupAutocomplete(input);
+          });
         } else {
           mostrarLogin();
         }

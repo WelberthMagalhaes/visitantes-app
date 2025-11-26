@@ -40,20 +40,6 @@ function cadastrarFamiliaBackend($nomeFamilia, $membros)
     $db = db();
     $hoje = date('Y-m-d');
     
-    // Verificar se algum membro já visitou hoje
-    foreach ($membros as $membro) {
-        $nomeNorm = normaliza($membro['nome']);
-        $stmt = $db->prepare("SELECT * FROM visitantes WHERE ultima_visita = :hoje");
-        $stmt->execute([':hoje' => $hoje]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        foreach ($rows as $r) {
-            if (normaliza($r['nome']) === $nomeNorm) {
-                return ['tipo' => 'ja_cadastrado_hoje', 'nome' => $r['nome']];
-            }
-        }
-    }
-    
     // Criar família
     $insFamilia = $db->prepare("INSERT INTO familias (nome_familia, criado_em) VALUES (:nome, :hoje)");
     $insFamilia->execute([':nome' => $nomeFamilia, ':hoje' => $hoje]);
@@ -75,9 +61,15 @@ function cadastrarFamiliaBackend($nomeFamilia, $membros)
         $encontrado = false;
         foreach ($rows as $r) {
             if (normaliza($r['nome']) === $nomeNorm) {
-                // Atualizar visitante existente
-                $upd = $db->prepare("UPDATE visitantes SET visitas = visitas + 1, ultima_visita = :data, familia_id = :fid, parentesco = :parentesco WHERE id = :id");
-                $upd->execute([':data' => $hoje, ':fid' => $familiaId, ':parentesco' => $parentesco, ':id' => $r['id']]);
+                // Se já visitou hoje, apenas atualiza familia_id e parentesco
+                if ($r['ultima_visita'] === $hoje) {
+                    $upd = $db->prepare("UPDATE visitantes SET familia_id = :fid, parentesco = :parentesco WHERE id = :id");
+                    $upd->execute([':fid' => $familiaId, ':parentesco' => $parentesco, ':id' => $r['id']]);
+                } else {
+                    // Retorno em outro dia: incrementa visitas
+                    $upd = $db->prepare("UPDATE visitantes SET visitas = visitas + 1, ultima_visita = :data, familia_id = :fid, parentesco = :parentesco WHERE id = :id");
+                    $upd->execute([':data' => $hoje, ':fid' => $familiaId, ':parentesco' => $parentesco, ':id' => $r['id']]);
+                }
                 $membrosIds[] = $r['id'];
                 $encontrado = true;
                 break;
