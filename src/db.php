@@ -14,10 +14,6 @@ function db()
 
         $db = new PDO('sqlite:' . $path);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-        // pragmas para performance
-        $db->exec('PRAGMA journal_mode = WAL;');
-        $db->exec('PRAGMA foreign_keys = ON;');
     }
 
     return $db;
