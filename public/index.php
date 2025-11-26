@@ -33,7 +33,33 @@ if ($method === 'GET' && $uri === '/api/visitantes') {
 
     $data = $_GET['data'] ?? date('Y-m-d');
     $lista = listarVisitantesPorData($data);
-    echo json_encode($lista);
+    
+    // Agrupar por família
+    $familias = [];
+    $individuais = [];
+    
+    foreach ($lista as $visitante) {
+        if ($visitante['familia_id']) {
+            $famId = $visitante['familia_id'];
+            if (!isset($familias[$famId])) {
+                $familias[$famId] = [
+                    'nome_familia' => $visitante['nome_familia'],
+                    'membros' => []
+                ];
+            }
+            $familias[$famId]['membros'][] = [
+                'nome' => $visitante['nome'],
+                'parentesco' => $visitante['parentesco']
+            ];
+        } else {
+            $individuais[] = ['nome' => $visitante['nome']];
+        }
+    }
+    
+    echo json_encode([
+        'familias' => array_values($familias),
+        'individuais' => $individuais
+    ]);
     exit;
 }
 
@@ -85,6 +111,23 @@ if ($method === 'POST' && $uri === '/interno/visitantes') {
 if ($method === 'GET' && $uri === '/interno/visitantes/all') {
     exigirAutenticacaoInterna();
     echo json_encode(listarTodosVisitantes());
+    exit;
+}
+
+// POST /interno/familias -> cadastrar família (exige autenticação)
+if ($method === 'POST' && $uri === '/interno/familias') {
+    exigirAutenticacaoInterna();
+    
+    $dados = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    if (empty($dados['nomeFamilia']) || empty($dados['membros'])) {
+        http_response_code(400);
+        echo json_encode(['erro' => 'Nome da família e membros são obrigatórios']);
+        exit;
+    }
+
+    $res = cadastrarFamiliaBackend($dados['nomeFamilia'], $dados['membros']);
+    echo json_encode(['status' => 'ok', 'res' => $res]);
     exit;
 }
 
