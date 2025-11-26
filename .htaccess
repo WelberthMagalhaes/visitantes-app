@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# Serve arquivos estáticos normalmente
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Tudo para index.php (router simples)
+RewriteRule ^ index.php [QSA,L]

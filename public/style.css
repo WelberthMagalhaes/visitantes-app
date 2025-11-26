@@ -1,0 +1,64 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f7f7f7;
+}
+
+.container {
+    max-width: 480px;
+    margin: 30px auto;
+    background: white;
+    padding: 16px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+label {
+    display: block;
+    margin-top: 8px
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ddd;
+    border-radius: 4px
+}
+
+button {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border: 0;
+    background: #2b6cb0;
+    color: white;
+    border-radius: 6px
+}
+
+.autocomplete-box {
+    position: relative
+}
+
+.sugestoes {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    max-height: 180px;
+    overflow: auto;
+    z-index: 99
+}
+
+.sugestao-item {
+    padding: 8px;
+    cursor: pointer
+}
+
+.sugestao-item:hover {
+    background: #eee
+}
+
+#msg {
+    margin-top: 12px;
+    color: #333
+}

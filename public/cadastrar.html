@@ -1,0 +1,206 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Cadastro de Visitantes</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h2>Cadastro de Visitantes</h2>
+
+      <form id="form">
+        <div class="autocomplete-box">
+          <label for="nome">Nome</label>
+          <input id="nome" name="nome" autocomplete="off" required />
+          <div id="sugestoes" class="sugestoes"></div>
+        </div>
+
+        <label for="telefone">Telefone</label>
+        <input id="telefone" name="telefone" />
+
+        <button type="submit">Registrar</button>
+      </form>
+
+      <p id="msg"></p>
+    </div>
+
+    <script>
+      // ---------- utils
+      function normaliza(str) {
+        if (!str) return "";
+        return str
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9 ]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      // -------- localStorage helpers
+      function getVisitantesLocal() {
+        return JSON.parse(localStorage.getItem("visitantesLocal") || "[]");
+      }
+      function salvarVisitantesLocal(lista) {
+        localStorage.setItem("visitantesLocal", JSON.stringify(lista));
+      }
+
+      function adicionarVisitanteLocal(nome, telefone) {
+        const lista = getVisitantesLocal();
+        const nomeNorm = normaliza(nome);
+        const existente = lista.find((v) => v.nomeNorm === nomeNorm);
+
+        if (existente) {
+          existente.visitas = (existente.visitas || 1) + 1;
+          existente.telefone = telefone || existente.telefone;
+          salvarVisitantesLocal(lista);
+          return { tipo: "retorno", visitante: existente };
+        }
+
+        const novo = {
+          id: crypto.randomUUID(),
+          nome,
+          nomeNorm,
+          telefone,
+          visitas: 1,
+        };
+        lista.push(novo);
+        salvarVisitantesLocal(lista);
+        return { tipo: "novo", visitante: novo };
+      }
+
+      function buscarVisitantesLocal(term) {
+        if (!term) return [];
+        const q = normaliza(term);
+        return getVisitantesLocal().filter((v) => v.nomeNorm.includes(q));
+      }
+
+      // --------- UI autocomplete
+      function setupAutoComplete() {
+        const input = document.querySelector("#nome");
+        const sugestoes = document.querySelector("#sugestoes");
+
+        input.addEventListener("input", () => {
+          const valor = input.value;
+          const resultados = buscarVisitantesLocal(valor);
+          sugestoes.innerHTML = "";
+
+          resultados.slice(0, 10).forEach((v) => {
+            const item = document.createElement("div");
+            item.className = "sugestao-item";
+            item.textContent = `${v.nome} (${v.telefone || "-"}) - visitas: ${v.visitas || 1}`;
+            item.onclick = () => {
+              document.querySelector("#nome").value = v.nome;
+              document.querySelector("#telefone").value = v.telefone || "";
+              sugestoes.innerHTML = "";
+            };
+            sugestoes.appendChild(item);
+          });
+        });
+      }
+
+      // ---------- sincronização com backend
+      const API_KEY = ""; // opcional: preencha aqui se rodar local sem variavel de ambiente
+      const API_HEADER = "X-API-KEY";
+      const BASE = ""; // se precisar, coloque base url. por default requisita ao mesmo host
+
+      async function enviarAoBackend(nome, telefone) {
+        try {
+          const payload = { nome, telefone };
+          const headers = { "Content-Type": "application/json" };
+          if (API_KEY) headers[API_HEADER] = API_KEY;
+
+          const res = await fetch((BASE || "") + "/api/visitantes", {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+          });
+
+          return await res.json();
+        } catch (err) {
+          console.error("Erro enviando ao backend", err);
+          return null;
+        }
+      }
+
+      // ao carregar: baixa lista do backend e popula localStorage (sincroniza)
+      async function sincronizarDoBackend() {
+        try {
+          const headers = {};
+          if (API_KEY) headers[API_HEADER] = API_KEY;
+
+          // tenta baixar todos (rota administrativa) — caso queira apenas de hoje, adaptar
+          const res = await fetch((BASE || "") + "/api/visitantes/all", {
+            headers,
+          });
+          if (!res.ok) return;
+          const lista = await res.json();
+
+          // transforma e salva local (mantém locais existentes somando visitas)
+          const local = getVisitantesLocal();
+          const map = new Map(local.map((v) => [v.nomeNorm, v]));
+
+          lista.forEach((v) => {
+            const nomeNorm = normaliza(v.nome);
+            const existente = map.get(nomeNorm);
+            if (existente) {
+              existente.visitas = Math.max(
+                existente.visitas || 1,
+                v.visitas || 1
+              );
+              existente.telefone = existente.telefone || v.telefone || "";
+            } else {
+              map.set(nomeNorm, {
+                id: crypto.randomUUID(),
+                nome: v.nome,
+                nomeNorm,
+                telefone: v.telefone || "",
+                visitas: v.visitas || 1,
+              });
+            }
+          });
+
+          salvarVisitantesLocal(Array.from(map.values()));
+        } catch (err) {
+          console.warn("Sincronização falhou:", err);
+        }
+      }
+
+      // ---------- form submit
+      document.addEventListener("DOMContentLoaded", async () => {
+        setupAutoComplete();
+        await sincronizarDoBackend();
+
+        const form = document.querySelector("#form");
+        const msg = document.querySelector("#msg");
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const nome = document.querySelector("#nome").value.trim();
+          const telefone = document.querySelector("#telefone").value.trim();
+
+          if (!nome) return;
+
+          const localRes = adicionarVisitanteLocal(nome, telefone);
+
+          // tenta enviar ao backend (não bloqueante)
+          const backendRes = await enviarAoBackend(nome, telefone);
+
+          if (localRes.tipo === "novo")
+            msg.textContent = "Visitante cadastrado (local)";
+          else msg.textContent = "Visitante retorno marcado (local)";
+
+          if (backendRes && backendRes.status === "ok") {
+            msg.textContent += " — sincronizado";
+          } else {
+            msg.textContent += " — sincronização falhou";
+          }
+
+          form.reset();
+        });
+      });
+    </script>
+  </body>
+</html>

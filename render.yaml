@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: visitantes-igreja
+    runtime: php
+    envVars:
+      - key: API_KEY
+        value: ""
+    plan: free

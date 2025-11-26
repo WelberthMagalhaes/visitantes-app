@@ -1,0 +1,59 @@
+# ============================================
+#  GERAL
+# ============================================
+*.log
+*.tmp
+*.cache
+*.bak
+*.old
+.DS_Store
+Thumbs.db
+
+# ============================================
+#  PROJETO PHP
+# ============================================
+vendor/
+composer.lock
+composer.phar
+
+# Pastas de cache comuns
+cache/
+tmp/
+logs/
+
+# Arquivos sensíveis
+.env
+.env.local
+.env.production
+.env.development
+
+# ============================================
+#  SQLITE
+# ============================================
+*.sqlite
+*.sqlite3
+database.sqlite
+db.sqlite
+backup-*.sqlite
+
+# ============================================
+#  FRONTEND
+# ============================================
+node_modules/
+dist/
+build/
+
+# ============================================
+#  SISTEMAS OPERACIONAIS
+# ============================================
+# macOS
+.AppleDouble
+.LSOverride
+
+# Windows
+ehthumbs.db
+Icon?
+desktop.ini
+
+# Linux
+*~
