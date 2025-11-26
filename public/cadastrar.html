@@ -242,19 +242,33 @@
 
           if (!nome) return;
 
-          const localRes = adicionarVisitanteLocal(nome, telefone);
-
-          // tenta enviar ao backend (não bloqueante)
+          // tenta enviar ao backend primeiro
           const backendRes = await enviarAoBackend(nome, telefone);
 
-          if (localRes.tipo === "novo")
-            msg.textContent = "Visitante cadastrado (local)";
-          else msg.textContent = "Visitante retorno marcado (local)";
-
           if (backendRes && backendRes.status === "ok") {
-            msg.textContent += " — sincronizado";
+            if (backendRes.res.tipo === "ja_cadastrado_hoje") {
+              msg.textContent = "Visitante já foi cadastrado hoje!";
+              msg.style.color = "orange";
+            } else {
+              // só adiciona local se backend permitiu
+              const localRes = adicionarVisitanteLocal(nome, telefone);
+
+              if (backendRes.res.tipo === "novo")
+                msg.textContent = "Visitante cadastrado";
+              else msg.textContent = "Visitante retorno marcado";
+
+              msg.textContent += " — sincronizado";
+              msg.style.color = "green";
+            }
           } else {
-            msg.textContent += " — sincronização falhou";
+            // fallback: adiciona só local se backend falhou
+            const localRes = adicionarVisitanteLocal(nome, telefone);
+
+            if (localRes.tipo === "novo")
+              msg.textContent = "Visitante cadastrado (apenas local)";
+            else msg.textContent = "Visitante retorno marcado (apenas local)";
+
+            msg.style.color = "red";
           }
 
           form.reset();

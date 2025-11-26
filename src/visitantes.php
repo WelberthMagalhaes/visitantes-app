@@ -6,6 +6,7 @@ function cadastrarVisitanteBackend($nome, $telefone)
 {
     $db = db();
     $nomeNorm = normaliza($nome);
+    $hoje = date('Y-m-d');
 
     // buscar por nome normalizado
     $stmt = $db->prepare("SELECT * FROM visitantes");
@@ -14,9 +15,14 @@ function cadastrarVisitanteBackend($nome, $telefone)
 
     foreach ($rows as $r) {
         if (normaliza($r['nome']) === $nomeNorm) {
+            // se já visitou hoje, não permite novo cadastro
+            if ($r['ultima_visita'] === $hoje) {
+                return ['tipo' => 'ja_cadastrado_hoje', 'id' => $r['id'], 'nome' => $r['nome']];
+            }
+
             // atualiza visitas e ultima_visita
             $upd = $db->prepare("UPDATE visitantes SET visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
-            $upd->execute([':data' => date('Y-m-d'), ':id' => $r['id']]);
+            $upd->execute([':data' => $hoje, ':id' => $r['id']]);
 
             return ['tipo' => 'retorno', 'id' => $r['id'], 'nome' => $r['nome']];
         }
@@ -24,7 +30,7 @@ function cadastrarVisitanteBackend($nome, $telefone)
 
     // novo
     $ins = $db->prepare("INSERT INTO visitantes (nome, telefone, visitas, ultima_visita, criado_em) VALUES (:n, :t, 1, :hoje, :hoje)");
-    $ins->execute([':n' => $nome, ':t' => $telefone, ':hoje' => date('Y-m-d')]);
+    $ins->execute([':n' => $nome, ':t' => $telefone, ':hoje' => $hoje]);
 
     return ['tipo' => 'novo', 'id' => $db->lastInsertId(), 'nome' => $nome];
 }
