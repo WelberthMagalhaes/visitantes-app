@@ -38,7 +38,7 @@ function cadastrarVisitanteBackend($nome, $telefone)
 function listarVisitantesPorData(string $data)
 {
     $db = db();
-    $stmt = $db->prepare("SELECT id, nome FROM visitantes WHERE ultima_visita = :d ORDER BY id DESC");
+    $stmt = $db->prepare("SELECT id, nome, visitas FROM visitantes WHERE ultima_visita = :d ORDER BY id DESC");
     $stmt->execute([':d' => $data]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }

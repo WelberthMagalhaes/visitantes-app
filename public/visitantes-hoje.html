@@ -1,0 +1,265 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Visitantes de Hoje</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      .visitante-card {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 10px 0;
+      }
+      .familia-card {
+        background: #e8f4f8;
+        border: 2px solid #4a90e2;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+      }
+      .familia-titulo {
+        font-weight: bold;
+        color: #4a90e2;
+        margin-bottom: 10px;
+        font-size: 1.1em;
+      }
+      .membro {
+        padding: 8px;
+        margin: 5px 0;
+        background: white;
+        border-radius: 4px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-size: 0.85em;
+        margin-left: 8px;
+      }
+      .badge-novo {
+        background: #4caf50;
+        color: white;
+      }
+      .badge-retorno {
+        background: #ff9800;
+        color: white;
+      }
+      .stats {
+        background: #f0f0f0;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-around;
+      }
+      .stat-item {
+        text-align: center;
+      }
+      .stat-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #4a90e2;
+      }
+      .stat-label {
+        color: #666;
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Tela de Login -->
+    <div class="login-screen container">
+      <h2>Acesso à Recepção</h2>
+      <form id="loginForm">
+        <label for="senha">Senha:</label>
+        <input id="senha" type="password" required />
+        <button type="submit">Entrar</button>
+      </form>
+      <p id="loginMsg"></p>
+    </div>
+
+    <!-- Tela Principal -->
+    <div class="main-screen container" style="display: none">
+      <h2>Visitantes de Hoje</h2>
+      <p style="text-align: center; color: #666" id="dataHoje"></p>
+
+      <div style="text-align: center; margin-bottom: 20px">
+        <a
+          href="/cadastrar.html"
+          style="
+            display: inline-block;
+            padding: 10px 20px;
+            background: #4caf50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+          "
+          >← Voltar ao Cadastro</a
+        >
+      </div>
+
+      <div class="stats" id="stats">
+        <div class="stat-item">
+          <div class="stat-number" id="totalVisitantes">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="totalNovos">0</div>
+          <div class="stat-label">Novos</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="totalRetornos">0</div>
+          <div class="stat-label">Retornos</div>
+        </div>
+      </div>
+
+      <button onclick="carregarVisitantes()" style="margin-bottom: 20px">
+        🔄 Atualizar
+      </button>
+
+      <div id="listaVisitantes"></div>
+    </div>
+
+    <script>
+      const BASE = "";
+      let autenticado = false;
+
+      async function verificarSessao() {
+        try {
+          const res = await fetch((BASE || "") + "/interno/visitantes/all");
+          if (res.ok) {
+            autenticado = true;
+            return true;
+          }
+        } catch (err) {
+          console.log("Sessão não ativa");
+        }
+        return false;
+      }
+
+      async function fazerLogin(senha) {
+        try {
+          const res = await fetch((BASE || "") + "/interno/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ senha }),
+          });
+
+          if (res.ok) {
+            autenticado = true;
+            return true;
+          }
+        } catch (err) {
+          console.error("Erro no login:", err);
+        }
+        return false;
+      }
+
+      function mostrarLogin() {
+        document.querySelector(".login-screen").style.display = "block";
+        document.querySelector(".main-screen").style.display = "none";
+      }
+
+      function mostrarPrincipal() {
+        document.querySelector(".login-screen").style.display = "none";
+        document.querySelector(".main-screen").style.display = "block";
+      }
+
+      async function carregarVisitantes() {
+        if (!autenticado) return;
+
+        try {
+          const hoje = new Date().toISOString().split("T")[0];
+          const res = await fetch((BASE || "") + `/interno/visitantes/hoje`);
+
+          if (!res.ok) return;
+
+          const data = await res.json();
+          renderizarVisitantes(data);
+        } catch (err) {
+          console.error("Erro carregando visitantes:", err);
+        }
+      }
+
+      function renderizarVisitantes(data) {
+        const lista = document.querySelector("#listaVisitantes");
+        const hoje = new Date().toLocaleDateString("pt-BR");
+        document.querySelector("#dataHoje").textContent = hoje;
+
+        // Estatísticas
+        let totalVisitantes = 0;
+        let totalNovos = 0;
+        let totalRetornos = 0;
+
+        lista.innerHTML = "";
+
+        // Renderizar individuais
+        if (data.individuais && data.individuais.length > 0) {
+          data.individuais.forEach((visitante) => {
+            console.log(visitante);
+            totalVisitantes++;
+            if (visitante.visitas === 1) totalNovos++;
+            else totalRetornos++;
+
+            const badge =
+              visitante.visitas === 1
+                ? '<span class="badge badge-novo">Novo</span>'
+                : `<span class="badge badge-retorno">Retorno (${visitante.visitas}x)</span>`;
+
+            const card = document.createElement("div");
+            card.className = "visitante-card";
+            card.innerHTML = `
+              <strong>${visitante.nome}</strong> ${badge}
+              ${visitante.telefone ? `<br><small>Tel: ${visitante.telefone}</small>` : ""}
+            `;
+            lista.appendChild(card);
+          });
+        }
+
+        // Atualizar estatísticas
+        document.querySelector("#totalVisitantes").textContent =
+          totalVisitantes;
+        document.querySelector("#totalNovos").textContent = totalNovos;
+        document.querySelector("#totalRetornos").textContent = totalRetornos;
+
+        if (totalVisitantes === 0) {
+          lista.innerHTML =
+            '<p style="text-align: center; color: #999;">Nenhum visitante registrado hoje.</p>';
+        }
+      }
+
+      // Inicialização
+      document.addEventListener("DOMContentLoaded", async () => {
+        const jaAutenticado = await verificarSessao();
+        if (jaAutenticado) {
+          mostrarPrincipal();
+          await carregarVisitantes();
+        } else {
+          mostrarLogin();
+        }
+
+        const loginForm = document.querySelector("#loginForm");
+        const loginMsg = document.querySelector("#loginMsg");
+
+        loginForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const senha = document.querySelector("#senha").value;
+
+          const sucesso = await fazerLogin(senha);
+          if (sucesso) {
+            mostrarPrincipal();
+            await carregarVisitantes();
+            loginMsg.textContent = "";
+          } else {
+            loginMsg.textContent = "Senha incorreta";
+            loginMsg.style.color = "red";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

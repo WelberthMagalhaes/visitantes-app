@@ -50,9 +50,9 @@ if ($method === 'GET' && $uri === '/api/visitantes/all') {
 if ($method === 'POST' && $uri === '/interno/login') {
     $dados = json_decode(file_get_contents('php://input'), true) ?? [];
     $senha = $dados['senha'] ?? null;
-    
 
-    
+
+
     if (verificarSessaoInterna($senha)) {
         echo json_encode(['status' => 'ok', 'message' => 'Autenticado']);
     } else {
@@ -65,7 +65,7 @@ if ($method === 'POST' && $uri === '/interno/login') {
 // POST /interno/visitantes -> cadastrar (exige autenticação)
 if ($method === 'POST' && $uri === '/interno/visitantes') {
     exigirAutenticacaoInterna();
-    
+
     $dados = json_decode(file_get_contents('php://input'), true) ?? [];
 
     if (empty($dados['nome'])) {
@@ -85,6 +85,17 @@ if ($method === 'POST' && $uri === '/interno/visitantes') {
 if ($method === 'GET' && $uri === '/interno/visitantes/all') {
     exigirAutenticacaoInterna();
     echo json_encode(listarTodosVisitantes());
+    exit;
+}
+
+// GET /interno/visitantes/hoje -> lista visitantes de hoje (exige autenticação)
+if ($method === 'GET' && $uri === '/interno/visitantes/hoje') {
+    exigirAutenticacaoInterna();
+
+    $hoje = date('Y-m-d');
+    $visitantes = listarVisitantesPorData($hoje);
+
+    echo json_encode(['individuais' => $visitantes]);
     exit;
 }
 
