@@ -14,7 +14,13 @@ header('Content-Type: application/json; charset=utf-8');
 if ($method === 'GET' && $uri === '/api/visitantes') {
     require_api_key();
 
-    $data = $_GET['data'] ?? date('Y-m-d');
+    if (empty($_GET['data'])) {
+        http_response_code(400);
+        echo json_encode(['erro' => 'Parâmetro `data` é obrigatório (formato: YYYY-MM-DD)']);
+        exit;
+    }
+
+    $data = $_GET['data'];
     $lista = listarVisitantesPorData($data);
     echo json_encode($lista);
     exit;
