@@ -114,6 +114,25 @@ if ($method === 'GET' && $uri === '/interno/visitantes/all') {
     exit;
 }
 
+// POST /interno/familia -> cadastrar família (exige autenticação)
+if ($method === 'POST' && $uri === '/interno/familia') {
+    exigirAutenticacaoInterna();
+    
+    $dados = json_decode(file_get_contents('php://input'), true) ?? [];
+    $nomeFamilia = $dados['nomeFamilia'] ?? '';
+    $membros = $dados['membros'] ?? [];
+
+    if (empty($nomeFamilia) || empty($membros)) {
+        http_response_code(400);
+        echo json_encode(['erro' => 'Nome da família e membros são obrigatórios']);
+        exit;
+    }
+
+    $res = cadastrarFamiliaBackend($nomeFamilia, $membros);
+    echo json_encode(['status' => 'ok', 'res' => $res]);
+    exit;
+}
+
 // POST /interno/familias -> cadastrar família (exige autenticação)
 if ($method === 'POST' && $uri === '/interno/familias') {
     exigirAutenticacaoInterna();

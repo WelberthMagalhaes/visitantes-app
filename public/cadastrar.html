@@ -122,6 +122,20 @@
       const BASE = ""; // se precisar, coloque base url. por default requisita ao mesmo host
       let autenticado = false;
 
+      // Verifica se já está autenticado
+      async function verificarSessao() {
+        try {
+          const res = await fetch((BASE || "") + "/interno/visitantes/all");
+          if (res.ok) {
+            autenticado = true;
+            return true;
+          }
+        } catch (err) {
+          console.log("Sessão não ativa");
+        }
+        return false;
+      }
+
       // Faz login com senha fornecida
       async function fazerLogin(senha) {
         try {
@@ -215,7 +229,15 @@
       // ---------- inicialização
       document.addEventListener("DOMContentLoaded", async () => {
         setupAutoComplete();
-        mostrarLogin();
+        
+        // Verifica se já está autenticado
+        const jaAutenticado = await verificarSessao();
+        if (jaAutenticado) {
+          mostrarPrincipal();
+          await sincronizarDoBackend();
+        } else {
+          mostrarLogin();
+        }
 
         // Form de login
         const loginForm = document.querySelector("#loginForm");
