@@ -8,39 +8,15 @@ $method = $_SERVER['REQUEST_METHOD'];
 // responder JSON por padrão
 header('Content-Type: application/json; charset=utf-8');
 
-// POST /api/visitantes -> cadastrar (exige API key)
-if ($method === 'POST' && $uri === '/api/visitantes') {
-    require_api_key();
+// === ROTAS API (com API_KEY) - Para Holyrics e integrações externas ===
 
-    $dados = json_decode(file_get_contents('php://input'), true) ?? [];
-
-    if (empty($dados['nome'])) {
-        http_response_code(400);
-        echo json_encode(['erro' => 'Nome é obrigatório']);
-        exit;
-    }
-
-    $telefone = $dados['telefone'] ?? '';
-    $res = cadastrarVisitanteBackend($dados['nome'], $telefone);
-
-    echo json_encode(['status' => 'ok', 'res' => $res]);
-    exit;
-}
-
-// GET /api/visitantes?data=YYYY-MM-DD -> lista de nomes para Holyrics (exige API key)
+// GET /api/visitantes?data=YYYY-MM-DD -> lista visitantes por data (exige API key)
 if ($method === 'GET' && $uri === '/api/visitantes') {
     require_api_key();
 
     $data = $_GET['data'] ?? date('Y-m-d');
     $lista = listarVisitantesPorData($data);
     echo json_encode($lista);
-    exit;
-}
-
-// GET /api/visitantes/all -> lista completa (uso administrativo) (exige API key)
-if ($method === 'GET' && $uri === '/api/visitantes/all') {
-    require_api_key();
-    echo json_encode(listarTodosVisitantes());
     exit;
 }
 
@@ -96,14 +72,6 @@ if ($method === 'GET' && $uri === '/interno/visitantes/hoje') {
     $visitantes = listarVisitantesPorData($hoje);
 
     echo json_encode(['individuais' => $visitantes]);
-    exit;
-}
-
-// GET /logout -> limpa sessão (para teste)
-if ($method === 'GET' && $uri === '/logout') {
-    session_start();
-    session_destroy();
-    echo json_encode(['status' => 'Sessão limpa']);
     exit;
 }
 
