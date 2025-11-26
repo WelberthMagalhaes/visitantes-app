@@ -40,25 +40,31 @@ docker-compose exec web php /var/www/html/database/criar_banco.php
    git push -u origin main
    ```
 
-2. **Crie Web Service no Render:**
-   - Acesse: https://dashboard.render.com
+2. **Crie PostgreSQL Database no Render:**
+   - No dashboard, clique em "New +" → "PostgreSQL"
+   - **Name:** `visitantes-db`
+   - **Instance Type:** Free
+   - Aguarde a criação (~2 min)
+   - Copie a **Internal Database URL**
+
+3. **Crie Web Service no Render:**
    - Clique em "New +" → "Web Service"
    - Conecte seu repositório GitHub
    - **Runtime:** Docker
    - **Instance Type:** Free
 
-3. **Configure Variáveis de Ambiente:**
+4. **Configure Variáveis de Ambiente:**
    ```
+   DATABASE_URL=postgresql://user:pass@host/db (cole a Internal Database URL)
    API_KEY=sua_chave_secreta_aqui
    SENHA_INTERNA=sua_senha_recepcao_aqui
    ```
 
-4. **Deploy automático:**
-   - O Render fará build do Docker
-   - O banco será criado automaticamente
-   - Aguarde ~5-10 minutos
+5. **Criar tabelas no banco:**
+   - Após o deploy, acesse: `https://seu-app.onrender.com/database/criar_banco.php`
+   - Você verá: "Banco criado com sucesso"
 
-5. **Acesse sua aplicação:**
+6. **Acesse sua aplicação:**
    - Interface: `https://seu-app.onrender.com/`
    - API: `https://seu-app.onrender.com/api/visitantes?data=2024-11-26&api_key=SUA_CHAVE`
 

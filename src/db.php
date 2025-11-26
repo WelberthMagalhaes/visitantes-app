@@ -5,14 +5,23 @@ function db()
     static $db = null;
 
     if ($db === null) {
-        $path = __DIR__ . '/../database/visitantes.sqlite';
+        // Tenta PostgreSQL (produção no Render)
+        $dbUrl = getenv('DATABASE_URL');
 
-        // garante que a pasta existe
-        if (!file_exists(dirname($path))) {
-            mkdir(dirname($path), 0755, true);
+        if ($dbUrl) {
+            // Parse DATABASE_URL do Render
+            $db = new PDO($dbUrl);
+        } else {
+            // Fallback para SQLite (desenvolvimento local)
+            $path = __DIR__ . '/../database/visitantes.sqlite';
+
+            if (!file_exists(dirname($path))) {
+                mkdir(dirname($path), 0755, true);
+            }
+
+            $db = new PDO('sqlite:' . $path);
         }
 
-        $db = new PDO('sqlite:' . $path);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 

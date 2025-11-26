@@ -6,12 +6,12 @@ $db = db();
 $db->exec(
     <<<'SQL'
 CREATE TABLE IF NOT EXISTS visitantes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    telefone TEXT,
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    telefone VARCHAR(20),
     visitas INTEGER DEFAULT 1,
-    ultima_visita TEXT,
-    criado_em TEXT
+    ultima_visita DATE,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 SQL
 );

@@ -3,13 +3,14 @@ FROM php:8.4-apache
 # Instala dependências do sistema
 RUN apt-get update && apt-get install -y \
     libsqlite3-dev \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Habilita mod_rewrite
 RUN a2enmod rewrite
 
 # Instala extensões necessárias
-RUN docker-php-ext-install pdo pdo_sqlite
+RUN docker-php-ext-install pdo pdo_sqlite pdo_pgsql
 
 # Copia arquivos do projeto
 COPY . /var/www/html/
