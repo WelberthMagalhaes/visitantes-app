@@ -1,0 +1,21 @@
+#!/bin/bash
+
+echo "🐳 Iniciando setup do projeto com Docker..."
+
+# Build da imagem
+docker-compose build
+
+# Inicia os containers
+docker-compose up -d
+
+# Aguarda o container estar pronto
+echo "⏳ Aguardando container inicializar..."
+sleep 5
+
+# Cria o banco de dados
+echo "🗄️ Criando banco de dados..."
+curl -s http://localhost:8080/database/criar_banco.php
+
+echo "✅ Setup concluído!"
+echo "🌐 Acesse: http://localhost:8080/cadastrar.html"
+echo "🔑 API Key configurada: MINHA_CHAVE_SUPER_SECRETA"
