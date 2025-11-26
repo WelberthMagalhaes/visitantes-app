@@ -14,8 +14,8 @@ sleep 5
 
 # Cria o banco de dados
 echo "🗄️ Criando banco de dados..."
-curl -s http://localhost:8080/database/criar_banco.php
+docker-compose exec web php /var/www/html/database/criar_banco.php
 
 echo "✅ Setup concluído!"
-echo "🌐 Acesse: http://localhost:8080/cadastrar.html"
-echo "🔑 API Key configurada: MINHA_CHAVE_SUPER_SECRETA"
+echo "🌐 Acesse: http://localhost:8080/"
+echo "🔑 Senha da recepção: hope-recepcao523"

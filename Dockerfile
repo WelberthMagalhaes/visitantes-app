@@ -29,9 +29,6 @@ RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/Allo
 RUN chown -R www-data:www-data /var/www/html/database
 RUN chmod 755 /var/www/html/database
 
-# Cria banco de dados na inicialização
-RUN php /var/www/html/database/criar_banco.php
-
 # Script para usar porta dinâmica do Render
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
