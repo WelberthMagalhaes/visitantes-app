@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   web:
     build: .
     ports:
       - "8080:80"
-    environment:
-      - API_KEY=MINHA_CHAVE_SUPER_SECRETA
+    env_file:
+      - .env
     volumes:
       - ./database:/var/www/html/database
       - ./public:/var/www/html/public

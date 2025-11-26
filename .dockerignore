@@ -4,5 +4,4 @@ README.md
 docker-compose.yml
 Dockerfile
 .dockerignore
-.env
 database/*.sqlite

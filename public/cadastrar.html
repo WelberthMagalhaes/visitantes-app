@@ -7,7 +7,19 @@
     <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
-    <div class="container">
+    <!-- Tela de Login -->
+    <div class="login-screen container">
+      <h2>Acesso à Recepção</h2>
+      <form id="loginForm">
+        <label for="senha">Senha:</label>
+        <input id="senha" type="password" required />
+        <button type="submit">Entrar</button>
+      </form>
+      <p id="loginMsg"></p>
+    </div>
+
+    <!-- Tela Principal -->
+    <div class="main-screen container" style="display: none">
       <h2>Cadastro de Visitantes</h2>
 
       <form id="form">
@@ -101,18 +113,48 @@
         });
       }
 
-      // ---------- sincronização com backend
-      const API_KEY = ""; // opcional: preencha aqui se rodar local sem variavel de ambiente
-      const API_HEADER = "X-API-KEY";
+      // ---------- autenticação e sincronização
       const BASE = ""; // se precisar, coloque base url. por default requisita ao mesmo host
+      let autenticado = false;
+
+      // Faz login com senha fornecida
+      async function fazerLogin(senha) {
+        try {
+          const res = await fetch((BASE || "") + "/interno/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ senha }),
+          });
+
+          if (res.ok) {
+            autenticado = true;
+            return true;
+          }
+        } catch (err) {
+          console.error("Erro no login:", err);
+        }
+        return false;
+      }
+
+      // Mostra/esconde telas
+      function mostrarLogin() {
+        document.querySelector(".login-screen").style.display = "block";
+        document.querySelector(".main-screen").style.display = "none";
+      }
+
+      function mostrarPrincipal() {
+        document.querySelector(".login-screen").style.display = "none";
+        document.querySelector(".main-screen").style.display = "block";
+      }
 
       async function enviarAoBackend(nome, telefone) {
+        if (!autenticado) return null;
+
         try {
           const payload = { nome, telefone };
           const headers = { "Content-Type": "application/json" };
-          if (API_KEY) headers[API_HEADER] = API_KEY;
 
-          const res = await fetch((BASE || "") + "/api/visitantes", {
+          const res = await fetch((BASE || "") + "/interno/visitantes", {
             method: "POST",
             headers,
             body: JSON.stringify(payload),
@@ -127,14 +169,11 @@
 
       // ao carregar: baixa lista do backend e popula localStorage (sincroniza)
       async function sincronizarDoBackend() {
-        try {
-          const headers = {};
-          if (API_KEY) headers[API_HEADER] = API_KEY;
+        if (!autenticado) return;
 
-          // tenta baixar todos (rota administrativa) — caso queira apenas de hoje, adaptar
-          const res = await fetch((BASE || "") + "/api/visitantes/all", {
-            headers,
-          });
+        try {
+          // tenta baixar todos (rota interna) — caso queira apenas de hoje, adaptar
+          const res = await fetch((BASE || "") + "/interno/visitantes/all");
           if (!res.ok) return;
           const lista = await res.json();
 
@@ -168,11 +207,31 @@
         }
       }
 
-      // ---------- form submit
+      // ---------- inicialização
       document.addEventListener("DOMContentLoaded", async () => {
         setupAutoComplete();
-        await sincronizarDoBackend();
+        mostrarLogin();
 
+        // Form de login
+        const loginForm = document.querySelector("#loginForm");
+        const loginMsg = document.querySelector("#loginMsg");
+
+        loginForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const senha = document.querySelector("#senha").value;
+
+          const sucesso = await fazerLogin(senha);
+          if (sucesso) {
+            mostrarPrincipal();
+            await sincronizarDoBackend();
+            loginMsg.textContent = "";
+          } else {
+            loginMsg.textContent = "Senha incorreta";
+            loginMsg.style.color = "red";
+          }
+        });
+
+        // Form principal
         const form = document.querySelector("#form");
         const msg = document.querySelector("#msg");
 
