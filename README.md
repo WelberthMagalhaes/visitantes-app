@@ -1,8 +1,18 @@
-# Visitantes - PHP + SQLite
+# Visitantes - PHP 8.4 + SQLite
 
-Projeto pronto para deploy no Render.com (plano free). Sistema simples para cadastro de visitantes, prevenção de duplicidade via localStorage + busca instantânea, backend em PHP + SQLite, autenticação mínima via API Key e endpoint JSON para Holyrics.
+Sistema de cadastro de visitantes para igrejas, pronto para deploy no Render.com (plano free). Interface web com autenticação por senha, prevenção de duplicidade no mesmo dia, busca instantânea via localStorage e API REST para integração com Holyrics.
 
-## Desenvolvimento Local (Docker)
+## ✨ Funcionalidades
+
+- 📝 **Cadastro Individual**: Interface simples para recepção
+- 🔒 **Autenticação**: Login com senha para acesso à interface
+- 🚫 **Prevenção de Duplicatas**: Não permite cadastro duplicado no mesmo dia
+- 🔍 **Busca Instantânea**: Autocomplete com visitantes já cadastrados
+- 📋 **Lista de Visitantes**: Visualização dos visitantes do dia
+- 🔌 **API REST**: Endpoint para Holyrics com autenticação via API Key
+- 💾 **Offline First**: Funciona localmente via localStorage com sincronização
+
+## 🐳 Desenvolvimento Local (Docker)
 
 **Requisitos**: Docker e Docker Compose
 
@@ -11,23 +21,110 @@ Projeto pronto para deploy no Render.com (plano free). Sistema simples para cada
 ./setup.sh
 
 # Ou manualmente:
+docker-compose build
 docker-compose up -d
-curl http://localhost:8080/database/criar_banco.php
+docker-compose exec web php /var/www/html/database/criar_banco.php
 ```
 
-**Acesso**: http://localhost:8080/cadastrar.html
+**Acesso**: http://localhost:8080/
+**Senha padrão**: `hope-recepcao523` (definida no `.env`)
 
-## Deploy no Render.com
+## 🚀 Deploy no Render.com
 
-1. Clone o repositório e faça `git push` para o GitHub.
-2. No Render, crie um novo Web Service apontando para o repositório. Runtime: Docker.
-3. Defina a variável de ambiente `API_KEY` no painel do serviço (valor secreto). Ex: `MINHA_CHAVE_SUPER_SECRETA`.
-4. O banco é criado automaticamente no build do Docker.
-5. Abra `/cadastrar.html` para a recepção.
-6. Configure o Holyrics para consumir `https://seu-app.onrender.com/api/visitantes?data=YYYY-MM-DD&api_key=MINHA_CHAVE` ou configure cabeçalho `X-API-KEY` se suportado.
+1. **Faça push para o GitHub:**
+   ```bash
+   git init
+   git add .
+   git commit -m "Deploy inicial"
+   git remote add origin https://github.com/SEU_USUARIO/visitantes-app.git
+   git push -u origin main
+   ```
 
-## Observações de segurança
+2. **Crie Web Service no Render:**
+   - Acesse: https://dashboard.render.com
+   - Clique em "New +" → "Web Service"
+   - Conecte seu repositório GitHub
+   - **Runtime:** Docker
+   - **Instance Type:** Free
 
-- **API_KEY:** Defina um segredo forte em Render (ou outra hospedagem) chamado `API_KEY`. O backend checa `X-API-KEY` header e, como fallback, `?api_key=` query param.
-- **Holyrics:** se o Holyrics aceita cabeçalho personalizado, configure `X-API-KEY` com o mesmo valor. Se não aceitar, utilize o query param com cuidado.
-- **Backups:** Faça backup do arquivo `database/visitantes.sqlite` regularmente.
+3. **Configure Variáveis de Ambiente:**
+   ```
+   API_KEY=sua_chave_secreta_aqui
+   SENHA_INTERNA=sua_senha_recepcao_aqui
+   ```
+
+4. **Deploy automático:**
+   - O Render fará build do Docker
+   - O banco será criado automaticamente
+   - Aguarde ~5-10 minutos
+
+5. **Acesse sua aplicação:**
+   - Interface: `https://seu-app.onrender.com/`
+   - API: `https://seu-app.onrender.com/api/visitantes?data=2024-11-26&api_key=SUA_CHAVE`
+
+## 🎵 Integração com Holyrics
+
+**Endpoint:** `GET /api/visitantes`
+
+**Parâmetros obrigatórios:**
+- `data`: Data no formato `YYYY-MM-DD`
+- `api_key`: Sua chave de API (query param) **OU** header `X-API-KEY`
+
+**Exemplo:**
+```
+https://seu-app.onrender.com/api/visitantes?data=2024-11-26&api_key=SUA_CHAVE
+```
+
+**Resposta:**
+```json
+[
+  {"id": 1, "nome": "João Silva", "visitas": 1},
+  {"id": 2, "nome": "Maria Santos", "visitas": 3}
+]
+```
+
+## 🔒 Segurança
+
+- **API_KEY:** Protege endpoint externo (Holyrics). Aceita header `X-API-KEY` ou query param `api_key`
+- **SENHA_INTERNA:** Protege interface web da recepção via autenticação por sessão
+- **Validação:** Parâmetro `data` é obrigatório na API externa
+- **Sessões:** Interface web usa sessões PHP para manter login
+- **Backups:** Faça backup do arquivo `database/visitantes.sqlite` regularmente
+
+## 📦 Estrutura do Projeto
+
+```
+visitantes-app/
+├── database/
+│   ├── criar_banco.php      # Script de criação do banco
+│   └── visitantes.sqlite    # Banco SQLite (criado automaticamente)
+├── public/
+│   ├── cadastrar.html       # Interface de cadastro
+│   ├── visitantes-hoje.html # Lista de visitantes do dia
+│   ├── index.php            # Router e endpoints API
+│   └── style.css            # Estilos
+├── src/
+│   ├── auth.php             # Autenticação e sessões
+│   ├── db.php               # Conexão SQLite
+│   ├── utils.php            # Funções utilitárias
+│   └── visitantes.php       # Lógica de negócio
+├── .env                     # Variáveis locais
+├── Dockerfile               # Imagem Docker PHP 8.4
+├── docker-compose.yml       # Orquestração local
+└── setup.sh                 # Script de setup automático
+```
+
+## 📊 Endpoints
+
+### API Externa (com API_KEY)
+- `GET /api/visitantes?data=YYYY-MM-DD` - Lista visitantes por data
+
+### API Interna (com sessão)
+- `POST /interno/login` - Autenticação
+- `POST /interno/visitantes` - Cadastrar visitante
+- `GET /interno/visitantes/all` - Listar todos
+- `GET /interno/visitantes/hoje` - Listar visitantes de hoje
+
+## ⚖️ Licença
+
+MIT
