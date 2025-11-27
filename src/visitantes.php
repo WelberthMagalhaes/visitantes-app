@@ -29,7 +29,7 @@ function cadastrarVisitanteBackend($nome, $telefone)
     }
 
     // novo
-    $ins = $db->prepare("INSERT INTO visitantes (nome, telefone, visitas, ultima_visita, criado_em) VALUES (:n, :t, 1, :hoje, :hoje)");
+    $ins = $db->prepare("INSERT INTO visitantes (nome, telefone, visitas, ultima_visita, criado_em) VALUES (:n, :t, 1, :hoje, CURRENT_TIMESTAMP)");
     $ins->execute([':n' => $nome, ':t' => $telefone, ':hoje' => $hoje]);
 
     return ['tipo' => 'novo', 'id' => $db->lastInsertId(), 'nome' => $nome];
