@@ -1,0 +1,19 @@
+# PostgreSQL standalone para desenvolvimento
+# Use junto com docker-compose.yml para simular ambiente Render
+
+services:
+  db:
+    image: postgres:18.1-bookworm
+    environment:
+      POSTGRES_DB: visitantes_db
+      POSTGRES_USER: visitantes
+      POSTGRES_PASSWORD: senha123
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

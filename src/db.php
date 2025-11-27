@@ -5,23 +5,18 @@ function db()
     static $db = null;
 
     if ($db === null) {
-        // Tenta PostgreSQL (produção no Render)
-        $dbUrl = getenv('DATABASE_URL');
+        $host = getenv('DB_HOST') ?: 'localhost';
+        $port = getenv('DB_PORT') ?: 5433;
+        $dbname = getenv('DB_NAME');
+        $user = getenv('DB_USER');
+        $pass = getenv('DB_PASS');
 
-        if ($dbUrl) {
-            // Parse DATABASE_URL do Render
-            $db = new PDO($dbUrl);
-        } else {
-            // Fallback para SQLite (desenvolvimento local)
-            $path = __DIR__ . '/../database/visitantes.sqlite';
-
-            if (!file_exists(dirname($path))) {
-                mkdir(dirname($path), 0755, true);
-            }
-
-            $db = new PDO('sqlite:' . $path);
+        if (!$dbname || !$user) {
+            throw new Exception('Variáveis de banco não configuradas. Configure DB_HOST, DB_NAME, DB_USER, DB_PASS no .env');
         }
 
+        $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
+        $db = new PDO($dsn, $user, $pass);
         $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 

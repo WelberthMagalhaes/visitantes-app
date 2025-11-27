@@ -1,10 +1,5 @@
-<?php
-require __DIR__ . '/../src/db.php';
+-- Schema PostgreSQL para sistema de visitantes
 
-$db = db();
-
-$db->exec(
-    <<<'SQL'
 CREATE TABLE IF NOT EXISTS visitantes (
     id SERIAL PRIMARY KEY,
     nome VARCHAR(255) NOT NULL,
@@ -13,7 +8,7 @@ CREATE TABLE IF NOT EXISTS visitantes (
     ultima_visita DATE,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-SQL
-);
 
-echo "Banco criado com sucesso\n";
+-- Índices para performance
+CREATE INDEX IF NOT EXISTS idx_visitantes_ultima_visita ON visitantes(ultima_visita);
+CREATE INDEX IF NOT EXISTS idx_visitantes_nome ON visitantes(nome);
