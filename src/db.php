@@ -6,7 +6,7 @@ function db()
 
     if ($db === null) {
         $host = getenv('DB_HOST') ?: 'localhost';
-        $port = getenv('DB_PORT') ?: 5433;
+        $port = getenv('DB_PORT') ?: 5432;
         $dbname = getenv('DB_NAME');
         $user = getenv('DB_USER');
         $pass = getenv('DB_PASS');
