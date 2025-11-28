@@ -24,7 +24,9 @@
       
       <div style="text-align: center; margin-bottom: 20px;">
         <a href="/visitantes-hoje.html" style="display: inline-block; padding: 10px 20px; background: #4a90e2; color: white; text-decoration: none; border-radius: 5px;">📋 Ver Visitantes de Hoje</a>
+        <button id="btnSync" style="margin-left: 10px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">🔄 Sincronizar</button>
       </div>
+      <p id="syncMsg" style="text-align: center; color: #666;"></p>
 
       <form id="form">
         <div class="autocomplete-box">
@@ -171,38 +173,39 @@
         }
       }
 
-      // ao carregar: baixa lista do backend e popula localStorage (sincroniza)
+      // Sincronização bidirecional: envia locais -> servidor, depois baixa servidor -> local
       async function sincronizarDoBackend() {
         if (!autenticado) return;
 
         try {
-          // tenta baixar todos (rota interna) — caso queira apenas de hoje, adaptar
+          const local = getVisitantesLocal();
+
+          // 1. Envia dados locais para o servidor
+          if (local.length > 0) {
+            await fetch((BASE || "") + "/interno/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ visitantes: local }),
+            });
+          }
+
+          // 2. Baixa dados atualizados do servidor
           const res = await fetch((BASE || "") + "/interno/visitantes/all");
           if (!res.ok) return;
-          const lista = await res.json();
+          const listaServidor = await res.json();
 
-          // transforma e salva local (mantém locais existentes somando visitas)
-          const local = getVisitantesLocal();
-          const map = new Map(local.map((v) => [v.nomeNorm, v]));
+          // 3. Atualiza localStorage com dados do servidor (servidor é fonte da verdade)
+          const map = new Map();
 
-          lista.forEach((v) => {
+          listaServidor.forEach((v) => {
             const nomeNorm = normaliza(v.nome);
-            const existente = map.get(nomeNorm);
-            if (existente) {
-              existente.visitas = Math.max(
-                existente.visitas || 1,
-                v.visitas || 1
-              );
-              existente.telefone = existente.telefone || v.telefone || "";
-            } else {
-              map.set(nomeNorm, {
-                id: crypto.randomUUID(),
-                nome: v.nome,
-                nomeNorm,
-                telefone: v.telefone || "",
-                visitas: v.visitas || 1,
-              });
-            }
+            map.set(nomeNorm, {
+              id: crypto.randomUUID(),
+              nome: v.nome,
+              nomeNorm,
+              telefone: v.telefone || "",
+              visitas: v.visitas || 1,
+            });
           });
 
           salvarVisitantesLocal(Array.from(map.values()));
@@ -298,6 +301,24 @@
           }
 
           form.reset();
+        });
+
+        // Botão de sincronização manual
+        const btnSync = document.querySelector("#btnSync");
+        const syncMsg = document.querySelector("#syncMsg");
+
+        btnSync.addEventListener("click", async () => {
+          syncMsg.textContent = "Sincronizando...";
+          syncMsg.style.color = "#666";
+          
+          await sincronizarDoBackend();
+          
+          syncMsg.textContent = "✓ Sincronizado com sucesso!";
+          syncMsg.style.color = "green";
+          
+          setTimeout(() => {
+            syncMsg.textContent = "";
+          }, 3000);
         });
       });
     </script>

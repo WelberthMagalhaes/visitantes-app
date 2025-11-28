@@ -81,6 +81,19 @@ if ($method === 'GET' && $uri === '/interno/visitantes/hoje') {
     exit;
 }
 
+// POST /interno/sync -> sincroniza dados locais com servidor (exige autenticação)
+if ($method === 'POST' && $uri === '/interno/sync') {
+    exigirAutenticacaoInterna();
+
+    $dados = json_decode(file_get_contents('php://input'), true) ?? [];
+    $visitantesLocais = $dados['visitantes'] ?? [];
+
+    $resultado = sincronizarVisitantes($visitantesLocais);
+
+    echo json_encode(['status' => 'ok', 'resultado' => $resultado]);
+    exit;
+}
+
 // GET / -> redireciona para cadastrar.html
 if ($method === 'GET' && $uri === '/') {
     header('Location: /cadastrar.html');
