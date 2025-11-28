@@ -24,6 +24,12 @@ function verificarSessaoInterna($senhaFornecida = null)
     // Lê senha do ambiente
     $senhaCorreta = getenv('SENHA_INTERNA') ?: 'recepcao123teste@';
 
+    // Log para debug (remover em produção)
+    error_log("[AUTH] Senha fornecida length: " . strlen($senhaFornecida ?: ''));
+    error_log("[AUTH] Senha correta length: " . strlen($senhaCorreta));
+    error_log("[AUTH] Senha correta: " . $senhaCorreta);
+    error_log("[AUTH] Match: " . ($senhaFornecida === $senhaCorreta ? 'SIM' : 'NAO'));
+
     if ($senhaFornecida && hash_equals($senhaCorreta, $senhaFornecida)) {
         $_SESSION['auth_interno'] = true;
         return true;
