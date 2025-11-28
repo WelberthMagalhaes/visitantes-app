@@ -69,9 +69,9 @@
       }
     </style>
   </head>
-  <body>
+  <body style="visibility: hidden">
     <!-- Tela de Login -->
-    <div class="login-screen container">
+    <div class="login-screen container" style="display: none">
       <h2>Acesso à Recepção</h2>
       <form id="loginForm">
         <label for="senha">Senha:</label>
@@ -127,12 +127,14 @@
     <script>
       const BASE = "";
       let autenticado = false;
+      let dadosCache = null;
 
       async function verificarSessao() {
         try {
-          const res = await fetch((BASE || "") + "/interno/visitantes/all");
+          const res = await fetch((BASE || "") + "/interno/visitantes/hoje");
           if (res.ok) {
             autenticado = true;
+            dadosCache = await res.json();
             return true;
           }
         } catch (err) {
@@ -169,16 +171,21 @@
         document.querySelector(".main-screen").style.display = "block";
       }
 
-      async function carregarVisitantes() {
+      async function carregarVisitantes(usarCache = false) {
         if (!autenticado) return;
 
         try {
-          const hoje = new Date().toISOString().split("T")[0];
-          const res = await fetch((BASE || "") + `/interno/visitantes/hoje`);
+          let data;
 
-          if (!res.ok) return;
+          if (usarCache && dadosCache) {
+            data = dadosCache;
+            dadosCache = null; // Limpa cache após usar
+          } else {
+            const res = await fetch((BASE || "") + `/interno/visitantes/hoje`);
+            if (!res.ok) return;
+            data = await res.json();
+          }
 
-          const data = await res.json();
           renderizarVisitantes(data);
         } catch (err) {
           console.error("Erro carregando visitantes:", err);
@@ -235,9 +242,13 @@
       // Inicialização
       document.addEventListener("DOMContentLoaded", async () => {
         const jaAutenticado = await verificarSessao();
+
+        // Mostra o body após verificar sessão
+        document.body.style.visibility = "visible";
+
         if (jaAutenticado) {
           mostrarPrincipal();
-          await carregarVisitantes();
+          await carregarVisitantes(true); // Usa cache da verificação
         } else {
           mostrarLogin();
         }

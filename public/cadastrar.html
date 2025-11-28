@@ -6,9 +6,9 @@
     <title>Cadastro de Visitantes</title>
     <link rel="stylesheet" href="/style.css" />
   </head>
-  <body>
+  <body style="visibility: hidden">
     <!-- Tela de Login -->
-    <div class="login-screen container">
+    <div class="login-screen container" style="display: none">
       <h2>Acesso à Recepção</h2>
       <form id="loginForm">
         <label for="senha">Senha:</label>
@@ -21,12 +21,36 @@
     <!-- Tela Principal -->
     <div class="main-screen container" style="display: none">
       <h2>Cadastro de Visitantes</h2>
-      
-      <div style="text-align: center; margin-bottom: 20px;">
-        <a href="/visitantes-hoje.html" style="display: inline-block; padding: 10px 20px; background: #4a90e2; color: white; text-decoration: none; border-radius: 5px;">📋 Ver Visitantes de Hoje</a>
-        <button id="btnSync" style="margin-left: 10px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">🔄 Sincronizar</button>
+
+      <div style="text-align: center; margin-bottom: 20px">
+        <a
+          href="/visitantes-hoje.html"
+          style="
+            display: inline-block;
+            padding: 10px 20px;
+            background: #4a90e2;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+          "
+          >📋 Ver Visitantes de Hoje</a
+        >
+        <button
+          id="btnSync"
+          style="
+            margin-left: 10px;
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+          "
+        >
+          🔄 Sincronizar
+        </button>
       </div>
-      <p id="syncMsg" style="text-align: center; color: #666;"></p>
+      <p id="syncMsg" style="text-align: center; color: #666"></p>
 
       <form id="form">
         <div class="autocomplete-box">
@@ -68,7 +92,7 @@
       function adicionarVisitanteLocal(nome, telefone) {
         const lista = getVisitantesLocal();
         const nomeNorm = normaliza(nome);
-        const hoje = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+        const hoje = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
         const existente = lista.find((v) => v.nomeNorm === nomeNorm);
 
         if (existente) {
@@ -76,7 +100,7 @@
           if (existente.ultima_visita === hoje) {
             return { tipo: "ja_cadastrado_hoje", visitante: existente };
           }
-          
+
           // Atualiza visita
           existente.visitas = (existente.visitas || 1) + 1;
           existente.telefone = telefone || existente.telefone;
@@ -131,6 +155,7 @@
       // ---------- autenticação e sincronização
       const BASE = ""; // se precisar, coloque base url. por default requisita ao mesmo host
       let autenticado = false;
+      let dadosCache = null;
 
       // Faz login com senha fornecida
       async function fazerLogin(senha) {
@@ -183,7 +208,7 @@
       }
 
       // Sincronização bidirecional: envia locais -> servidor, depois baixa servidor -> local
-      async function sincronizarDoBackend() {
+      async function sincronizarDoBackend(usarCache = false) {
         if (!autenticado) return;
 
         try {
@@ -198,10 +223,17 @@
             });
           }
 
-          // 2. Baixa dados atualizados do servidor
-          const res = await fetch((BASE || "") + "/interno/visitantes/all");
-          if (!res.ok) return;
-          const listaServidor = await res.json();
+          // 2. Baixa dados atualizados do servidor (ou usa cache)
+          let listaServidor;
+
+          if (usarCache && dadosCache) {
+            listaServidor = dadosCache;
+            dadosCache = null;
+          } else {
+            const res = await fetch((BASE || "") + "/interno/visitantes/all");
+            if (!res.ok) return;
+            listaServidor = await res.json();
+          }
 
           // 3. Atualiza localStorage com dados do servidor (servidor é fonte da verdade)
           const map = new Map();
@@ -230,6 +262,7 @@
           const res = await fetch((BASE || "") + "/interno/visitantes/all");
           if (res.ok) {
             autenticado = true;
+            dadosCache = await res.json();
             return true;
           }
         } catch (err) {
@@ -241,12 +274,16 @@
       // ---------- inicialização
       document.addEventListener("DOMContentLoaded", async () => {
         setupAutoComplete();
-        
+
         // Verifica se já está autenticado
         const jaAutenticado = await verificarSessao();
+
+        // Mostra o body após verificar sessão
+        document.body.style.visibility = "visible";
+
         if (jaAutenticado) {
           mostrarPrincipal();
-          await sincronizarDoBackend();
+          await sincronizarDoBackend(true); // Usa cache da verificação
         } else {
           mostrarLogin();
         }
@@ -330,12 +367,12 @@
         btnSync.addEventListener("click", async () => {
           syncMsg.textContent = "Sincronizando...";
           syncMsg.style.color = "#666";
-          
+
           await sincronizarDoBackend();
-          
+
           syncMsg.textContent = "✓ Sincronizado com sucesso!";
           syncMsg.style.color = "green";
-          
+
           setTimeout(() => {
             syncMsg.textContent = "";
           }, 3000);
