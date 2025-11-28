@@ -68,11 +68,19 @@
       function adicionarVisitanteLocal(nome, telefone) {
         const lista = getVisitantesLocal();
         const nomeNorm = normaliza(nome);
+        const hoje = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
         const existente = lista.find((v) => v.nomeNorm === nomeNorm);
 
         if (existente) {
+          // Verifica se já cadastrou hoje
+          if (existente.ultima_visita === hoje) {
+            return { tipo: "ja_cadastrado_hoje", visitante: existente };
+          }
+          
+          // Atualiza visita
           existente.visitas = (existente.visitas || 1) + 1;
           existente.telefone = telefone || existente.telefone;
+          existente.ultima_visita = hoje;
           salvarVisitantesLocal(lista);
           return { tipo: "retorno", visitante: existente };
         }
@@ -83,6 +91,7 @@
           nomeNorm,
           telefone,
           visitas: 1,
+          ultima_visita: hoje,
         };
         lista.push(novo);
         salvarVisitantesLocal(lista);
@@ -205,6 +214,7 @@
               nomeNorm,
               telefone: v.telefone || "",
               visitas: v.visitas || 1,
+              ultima_visita: v.ultima_visita || null, // Traz data do servidor
             });
           });
 
@@ -293,12 +303,22 @@
             // fallback: adiciona só local se backend falhou
             const localRes = adicionarVisitanteLocal(nome, telefone);
 
-            if (localRes.tipo === "novo")
+            if (localRes.tipo === "ja_cadastrado_hoje") {
+              msg.textContent = "Visitante já foi cadastrado hoje (local)!";
+              msg.style.color = "orange";
+            } else if (localRes.tipo === "novo") {
               msg.textContent = "Visitante cadastrado (apenas local)";
-            else msg.textContent = "Visitante retorno marcado (apenas local)";
-
-            msg.style.color = "red";
+              msg.style.color = "red";
+            } else {
+              msg.textContent = "Visitante retorno marcado (apenas local)";
+              msg.style.color = "red";
+            }
           }
+
+          // Limpa mensagem após 3 segundos
+          setTimeout(() => {
+            msg.textContent = "";
+          }, 3000);
 
           form.reset();
         });

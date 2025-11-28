@@ -46,7 +46,7 @@ function listarVisitantesPorData(string $data)
 function listarTodosVisitantes()
 {
     $db = db();
-    $stmt = $db->prepare("SELECT id, nome, telefone, visitas, ultima_visita FROM visitantes ORDER BY nome ASC");
+    $stmt = $db->prepare("SELECT id, nome, telefone, visitas, DATE(ultima_visita) as ultima_visita FROM visitantes ORDER BY nome ASC");
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
