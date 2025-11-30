@@ -17,12 +17,20 @@ label {
     margin-top: 8px
 }
 
-input {
+input,
+textarea {
     width: 100%;
     padding: 8px;
     margin-top: 4px;
     border: 1px solid #ddd;
-    border-radius: 4px
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 60px;
 }
 
 button {

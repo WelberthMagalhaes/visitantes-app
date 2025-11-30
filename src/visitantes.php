@@ -2,7 +2,7 @@
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/utils.php';
 
-function cadastrarVisitanteBackend($nome, $telefone)
+function cadastrarVisitanteBackend($nome, $telefone, $acompanhantes = 0, $observacao = null)
 {
     $db = db();
     $nomeNorm = normaliza($nome);
@@ -13,32 +13,72 @@ function cadastrarVisitanteBackend($nome, $telefone)
     $stmt->execute();
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    $visitanteId = null;
+    $tipo = 'novo';
+
     foreach ($rows as $r) {
         if (normaliza($r['nome']) === $nomeNorm) {
-            // se já visitou hoje, não permite novo cadastro
-            if ($r['ultima_visita'] === $hoje) {
+            // Verifica se já tem visita registrada hoje
+            $checkVisita = $db->prepare("SELECT 1 FROM visitas WHERE visitante_id = :id AND data_visita = :hoje");
+            $checkVisita->execute([':id' => $r['id'], ':hoje' => $hoje]);
+
+            if ($checkVisita->fetch()) {
                 return ['tipo' => 'ja_cadastrado_hoje', 'id' => $r['id'], 'nome' => $r['nome']];
             }
 
-            // atualiza visitas e ultima_visita
+            // Atualiza visitante existente
             $upd = $db->prepare("UPDATE visitantes SET visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
             $upd->execute([':data' => $hoje, ':id' => $r['id']]);
 
-            return ['tipo' => 'retorno', 'id' => $r['id'], 'nome' => $r['nome']];
+            $visitanteId = $r['id'];
+            $tipo = 'retorno';
+            break;
         }
     }
 
-    // novo
-    $ins = $db->prepare("INSERT INTO visitantes (nome, telefone, visitas, ultima_visita, criado_em) VALUES (:n, :t, 1, :hoje, CURRENT_TIMESTAMP)");
-    $ins->execute([':n' => $nome, ':t' => $telefone, ':hoje' => $hoje]);
+    // Se não encontrou, cria novo visitante
+    if (!$visitanteId) {
+        $ins = $db->prepare("INSERT INTO visitantes (nome, telefone, visitas, ultima_visita, criado_em) VALUES (:n, :t, 1, :hoje, CURRENT_TIMESTAMP)");
+        $ins->execute([':n' => $nome, ':t' => $telefone, ':hoje' => $hoje]);
+        $visitanteId = $db->lastInsertId();
+    }
 
-    return ['tipo' => 'novo', 'id' => $db->lastInsertId(), 'nome' => $nome];
+    // SEMPRE cria registro na tabela visitas
+    $insVisita = $db->prepare("INSERT INTO visitas (visitante_id, data_visita, acompanhantes, observacao) VALUES (:vid, :data, :acomp, :obs)");
+    $insVisita->execute([
+        ':vid' => $visitanteId,
+        ':data' => $hoje,
+        ':acomp' => $acompanhantes,
+        ':obs' => $observacao
+    ]);
+
+    return ['tipo' => $tipo, 'id' => $visitanteId, 'visita_id' => $db->lastInsertId(), 'nome' => $nome];
+}
+
+function atualizarObservacaoVisita($visitaId, $acompanhantes, $observacao)
+{
+    $db = db();
+    $upd = $db->prepare("UPDATE visitas SET acompanhantes = :acomp, observacao = :obs WHERE id = :id");
+    $upd->execute([':acomp' => $acompanhantes, ':obs' => $observacao, ':id' => $visitaId]);
+    return ['status' => 'ok'];
 }
 
 function listarVisitantesPorData(string $data)
 {
     $db = db();
-    $stmt = $db->prepare("SELECT id, nome, visitas FROM visitantes WHERE ultima_visita = :d ORDER BY id DESC");
+    $stmt = $db->prepare("
+        SELECT 
+            v.id,
+            v.nome,
+            vt.visitante_id,
+            vt.acompanhantes,
+            vt.observacao,
+            (SELECT COUNT(*) FROM visitas WHERE visitante_id = v.id) as total_visitas
+        FROM visitas vt
+        JOIN visitantes v ON v.id = vt.visitante_id
+        WHERE vt.data_visita = :d
+        ORDER BY vt.id DESC
+    ");
     $stmt->execute([':d' => $data]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -60,7 +100,6 @@ function sincronizarVisitantes(array $visitantesLocais)
     foreach ($visitantesLocais as $vLocal) {
         $nome = $vLocal['nome'] ?? '';
         $telefone = $vLocal['telefone'] ?? '';
-        $visitasLocal = $vLocal['visitas'] ?? 1;
 
         if (empty($nome)) continue;
 
@@ -80,32 +119,34 @@ function sincronizarVisitantes(array $visitantesLocais)
         }
 
         if ($encontrado) {
-            // Se já visitou hoje, ignora
-            if ($encontrado['ultima_visita'] === $hoje) {
+            // Verifica se já tem visita hoje
+            $checkVisita = $db->prepare("SELECT 1 FROM visitas WHERE visitante_id = :id AND data_visita = :hoje");
+            $checkVisita->execute([':id' => $encontrado['id'], ':hoje' => $hoje]);
+
+            if ($checkVisita->fetch()) {
                 $resultado['ignorados']++;
                 continue;
             }
 
-            // Atualiza se visitas local > servidor
-            if ($visitasLocal > $encontrado['visitas']) {
-                $upd = $db->prepare("UPDATE visitantes SET visitas = :visitas, ultima_visita = :data, telefone = :tel WHERE id = :id");
-                $upd->execute([
-                    ':visitas' => $visitasLocal,
-                    ':data' => $hoje,
-                    ':tel' => $telefone ?: $encontrado['telefone'],
-                    ':id' => $encontrado['id']
-                ]);
-                $resultado['atualizados']++;
-            } else {
-                // Apenas atualiza ultima_visita
-                $upd = $db->prepare("UPDATE visitantes SET visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
-                $upd->execute([':data' => $hoje, ':id' => $encontrado['id']]);
-                $resultado['atualizados']++;
-            }
+            // Atualiza visitante
+            $upd = $db->prepare("UPDATE visitantes SET visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
+            $upd->execute([':data' => $hoje, ':id' => $encontrado['id']]);
+
+            // Cria registro de visita
+            $insVisita = $db->prepare("INSERT INTO visitas (visitante_id, data_visita, acompanhantes, observacao) VALUES (:vid, :data, 0, NULL)");
+            $insVisita->execute([':vid' => $encontrado['id'], ':data' => $hoje]);
+
+            $resultado['atualizados']++;
         } else {
-            // Insere novo
-            $ins = $db->prepare("INSERT INTO visitantes (nome, telefone, visitas, ultima_visita, criado_em) VALUES (:n, :t, :v, :hoje, CURRENT_TIMESTAMP)");
-            $ins->execute([':n' => $nome, ':t' => $telefone, ':v' => $visitasLocal, ':hoje' => $hoje]);
+            // Insere novo visitante
+            $ins = $db->prepare("INSERT INTO visitantes (nome, telefone, visitas, ultima_visita, criado_em) VALUES (:n, :t, 1, :hoje, CURRENT_TIMESTAMP)");
+            $ins->execute([':n' => $nome, ':t' => $telefone, ':hoje' => $hoje]);
+            $novoId = $db->lastInsertId();
+
+            // Cria registro de visita
+            $insVisita = $db->prepare("INSERT INTO visitas (visitante_id, data_visita, acompanhantes, observacao) VALUES (:vid, :data, 0, NULL)");
+            $insVisita->execute([':vid' => $novoId, ':data' => $hoje]);
+
             $resultado['inseridos']++;
         }
     }

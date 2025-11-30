@@ -70,9 +70,26 @@ if ($method === 'POST' && $uri === '/interno/visitantes') {
     }
 
     $telefone = $dados['telefone'] ?? '';
-    $res = cadastrarVisitanteBackend($dados['nome'], $telefone);
+    $acompanhantes = $dados['acompanhantes'] ?? 0;
+    $observacao = $dados['observacao'] ?? null;
+    $res = cadastrarVisitanteBackend($dados['nome'], $telefone, $acompanhantes, $observacao);
 
     echo json_encode(['status' => 'ok', 'res' => $res]);
+    exit;
+}
+
+// PUT /interno/visitas/{id} -> atualizar observação/acompanhantes
+if ($method === 'PUT' && preg_match('#^/interno/visitas/(\d+)$#', $uri, $matches)) {
+    exigirAutenticacaoInterna();
+
+    $visitaId = $matches[1];
+    $dados = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    $acompanhantes = $dados['acompanhantes'] ?? 0;
+    $observacao = $dados['observacao'] ?? null;
+
+    $res = atualizarObservacaoVisita($visitaId, $acompanhantes, $observacao);
+    echo json_encode($res);
     exit;
 }
 

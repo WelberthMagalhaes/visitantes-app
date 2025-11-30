@@ -105,15 +105,15 @@
       <div class="stats" id="stats">
         <div class="stat-item">
           <div class="stat-number" id="totalVisitantes">0</div>
-          <div class="stat-label">Total</div>
+          <div class="stat-label">Visitantes</div>
         </div>
         <div class="stat-item">
-          <div class="stat-number" id="totalNovos">0</div>
-          <div class="stat-label">Novos</div>
+          <div class="stat-number" id="totalAcompanhantes">0</div>
+          <div class="stat-label">Acompanhantes</div>
         </div>
         <div class="stat-item">
-          <div class="stat-number" id="totalRetornos">0</div>
-          <div class="stat-label">Retornos</div>
+          <div class="stat-number" id="totalPessoas">0</div>
+          <div class="stat-label">Total Pessoas</div>
         </div>
       </div>
 
@@ -199,29 +199,27 @@
 
         // Estatísticas
         let totalVisitantes = 0;
-        let totalNovos = 0;
-        let totalRetornos = 0;
+        let totalAcompanhantes = 0;
 
         lista.innerHTML = "";
 
         // Renderizar individuais
         if (data.individuais && data.individuais.length > 0) {
           data.individuais.forEach((visitante) => {
-            console.log(visitante);
             totalVisitantes++;
-            if (visitante.visitas === 1) totalNovos++;
-            else totalRetornos++;
+            totalAcompanhantes += visitante.acompanhantes || 0;
 
             const badge =
-              visitante.visitas === 1
+              visitante.total_visitas === 1
                 ? '<span class="badge badge-novo">Novo</span>'
-                : `<span class="badge badge-retorno">Retorno (${visitante.visitas}x)</span>`;
+                : `<span class="badge badge-retorno">Retorno (${visitante.total_visitas}x)</span>`;
 
             const card = document.createElement("div");
             card.className = "visitante-card";
             card.innerHTML = `
               <strong>${visitante.nome}</strong> ${badge}
-              ${visitante.telefone ? `<br><small>Tel: ${visitante.telefone}</small>` : ""}
+              ${visitante.acompanhantes > 0 ? `<br><small>👥 +${visitante.acompanhantes} acompanhante(s)</small>` : ""}
+              ${visitante.observacao ? `<br><small>📝 ${visitante.observacao}</small>` : ""}
             `;
             lista.appendChild(card);
           });
@@ -230,8 +228,10 @@
         // Atualizar estatísticas
         document.querySelector("#totalVisitantes").textContent =
           totalVisitantes;
-        document.querySelector("#totalNovos").textContent = totalNovos;
-        document.querySelector("#totalRetornos").textContent = totalRetornos;
+        document.querySelector("#totalAcompanhantes").textContent =
+          totalAcompanhantes;
+        document.querySelector("#totalPessoas").textContent =
+          totalVisitantes + totalAcompanhantes;
 
         if (totalVisitantes === 0) {
           lista.innerHTML =
