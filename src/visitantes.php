@@ -132,8 +132,15 @@ function sincronizarVisitantes(array $visitantesLocais)
     foreach ($visitantesLocais as $vLocal) {
         $nome = $vLocal['nome'] ?? '';
         $telefone = $vLocal['telefone'] ?? '';
+        $ultimaVisitaLocal = $vLocal['ultima_visita'] ?? null;
 
         if (empty($nome)) continue;
+
+        // Ignora visitantes que não foram visitados hoje
+        if ($ultimaVisitaLocal !== $hoje) {
+            $resultado['ignorados']++;
+            continue;
+        }
 
         $nomeNorm = normaliza($nome);
 
