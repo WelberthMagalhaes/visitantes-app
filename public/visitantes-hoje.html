@@ -67,6 +67,56 @@
         color: #666;
         font-size: 0.9em;
       }
+      .btn-editar {
+        background: #2196f3;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85em;
+        margin-top: 8px;
+      }
+      .btn-editar:hover {
+        background: #1976d2;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+      .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 400px;
+      }
+      .modal-content input,
+      .modal-content textarea {
+        width: 100%;
+        padding: 8px;
+        margin: 8px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      .modal-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+      .modal-buttons button {
+        flex: 1;
+      }
+      .btn-cancelar {
+        background: #999 !important;
+      }
     </style>
   </head>
   <body style="visibility: hidden">
@@ -117,12 +167,47 @@
         </div>
       </div>
 
-      <button id="btnAtualizar" onclick="carregarVisitantes()" style="margin-bottom: 20px">
+      <button
+        id="btnAtualizar"
+        onclick="carregarVisitantes()"
+        style="margin-bottom: 20px"
+      >
         🔄 Atualizar
       </button>
-      <p id="atualizarMsg" style="text-align: center; color: #666; margin-top: 10px;"></p>
+      <p
+        id="atualizarMsg"
+        style="text-align: center; color: #666; margin-top: 10px"
+      ></p>
 
       <div id="listaVisitantes"></div>
+    </div>
+
+    <!-- Modal de Edição -->
+    <div id="modalEditar" class="modal">
+      <div class="modal-content">
+        <h3>Editar Visita</h3>
+        <form id="formEditar">
+          <input type="hidden" id="editVisitaId" />
+          <input type="hidden" id="editVisitanteId" />
+
+          <label for="editNome">Nome</label>
+          <input id="editNome" type="text" required />
+
+          <label for="editAcompanhantes">Acompanhantes</label>
+          <input id="editAcompanhantes" type="number" min="0" required />
+
+          <label for="editObservacao">Observação</label>
+          <textarea id="editObservacao" rows="3"></textarea>
+
+          <div class="modal-buttons">
+            <button type="button" class="btn-cancelar" onclick="fecharModal()">
+              Cancelar
+            </button>
+            <button type="submit">Salvar</button>
+          </div>
+        </form>
+        <p id="editMsg" style="margin-top: 10px; text-align: center"></p>
+      </div>
     </div>
 
     <script>
@@ -171,6 +256,9 @@
         document.querySelector(".login-screen").style.display = "none";
         document.querySelector(".main-screen").style.display = "block";
       }
+
+      window.abrirModalEditar = abrirModalEditar;
+      window.fecharModal = fecharModal;
 
       async function carregarVisitantes(usarCache = false) {
         if (!autenticado) return;
@@ -247,6 +335,7 @@
               <strong>${visitante.nome}</strong> ${badge}
               ${visitante.acompanhantes > 0 ? `<br><small>👥 +${visitante.acompanhantes} acompanhante(s)</small>` : ""}
               ${visitante.observacao ? `<br><small>📝 ${visitante.observacao}</small>` : ""}
+              <br><button class="btn-editar" onclick="window.currentVisitanteId=${visitante.visitante_id}; abrirModalEditar(${visitante.id}, '${visitante.nome.replace(/'/g, "\\'").replace(/"/g, "&quot;")}', ${visitante.acompanhantes || 0}, '${(visitante.observacao || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ")}')">Editar</button>
             `;
             lista.appendChild(card);
           });
@@ -297,6 +386,100 @@
             loginMsg.style.color = "red";
           }
         });
+      });
+
+      // Funções de edição
+      function abrirModalEditar(visitaId, nome, acompanhantes, observacao) {
+        // Buscar visitante_id do card (será passado agora)
+        const visitanteId = window.currentVisitanteId;
+
+        document.querySelector("#editVisitaId").value = visitaId;
+        document.querySelector("#editVisitanteId").value = visitanteId;
+        document.querySelector("#editNome").value = nome;
+        document.querySelector("#editAcompanhantes").value = acompanhantes;
+        document.querySelector("#editObservacao").value = observacao;
+        document.querySelector("#editMsg").textContent = "";
+        document.querySelector("#modalEditar").style.display = "block";
+      }
+
+      function fecharModal() {
+        document.querySelector("#modalEditar").style.display = "none";
+      }
+
+      // Fechar modal ao clicar fora
+      window.onclick = function (event) {
+        const modal = document.querySelector("#modalEditar");
+        if (event.target === modal) {
+          fecharModal();
+        }
+      };
+
+      // Submit do formulário de edição
+      document.addEventListener("DOMContentLoaded", () => {
+        document
+          .querySelector("#formEditar")
+          .addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const visitaId = document.querySelector("#editVisitaId").value;
+            const visitanteId =
+              document.querySelector("#editVisitanteId").value;
+            const nome = document.querySelector("#editNome").value.trim();
+            const acompanhantes =
+              parseInt(document.querySelector("#editAcompanhantes").value) || 0;
+            const observacao = document
+              .querySelector("#editObservacao")
+              .value.trim();
+            const msg = document.querySelector("#editMsg");
+
+            if (!nome) {
+              msg.textContent = "Nome é obrigatório";
+              msg.style.color = "red";
+              return;
+            }
+
+            msg.textContent = "Salvando...";
+            msg.style.color = "#666";
+
+            try {
+              // Atualizar nome do visitante
+              const resNome = await fetch(
+                (BASE || "") + `/interno/visitantes/${visitanteId}`,
+                {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ nome }),
+                }
+              );
+
+              // Atualizar visita (acompanhantes e observação)
+              const resVisita = await fetch(
+                (BASE || "") + `/interno/visitas/${visitaId}`,
+                {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ acompanhantes, observacao }),
+                }
+              );
+
+              if (resNome.ok && resVisita.ok) {
+                msg.textContent = "✓ Salvo com sucesso!";
+                msg.style.color = "green";
+
+                setTimeout(() => {
+                  fecharModal();
+                  carregarVisitantes();
+                }, 1000);
+              } else {
+                msg.textContent = "Erro ao salvar";
+                msg.style.color = "red";
+              }
+            } catch (err) {
+              console.error("Erro ao editar:", err);
+              msg.textContent = "Erro ao salvar";
+              msg.style.color = "red";
+            }
+          });
       });
     </script>
   </body>

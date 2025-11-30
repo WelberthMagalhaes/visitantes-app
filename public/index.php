@@ -78,6 +78,24 @@ if ($method === 'POST' && $uri === '/interno/visitantes') {
     exit;
 }
 
+// PUT /interno/visitantes/{id} -> atualizar nome do visitante
+if ($method === 'PUT' && preg_match('#^/interno/visitantes/(\d+)$#', $uri, $matches)) {
+    exigirAutenticacaoInterna();
+
+    $visitanteId = $matches[1];
+    $dados = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    if (empty($dados['nome'])) {
+        http_response_code(400);
+        echo json_encode(['erro' => 'Nome é obrigatório']);
+        exit;
+    }
+
+    $res = atualizarNomeVisitante($visitanteId, $dados['nome']);
+    echo json_encode($res);
+    exit;
+}
+
 // PUT /interno/visitas/{id} -> atualizar observação/acompanhantes
 if ($method === 'PUT' && preg_match('#^/interno/visitas/(\d+)$#', $uri, $matches)) {
     exigirAutenticacaoInterna();

@@ -63,6 +63,14 @@ function atualizarObservacaoVisita($visitaId, $acompanhantes, $observacao)
     return ['status' => 'ok'];
 }
 
+function atualizarNomeVisitante($visitanteId, $nome)
+{
+    $db = db();
+    $upd = $db->prepare("UPDATE visitantes SET nome = :nome WHERE id = :id");
+    $upd->execute([':nome' => $nome, ':id' => $visitanteId]);
+    return ['status' => 'ok'];
+}
+
 function listarVisitantesPorData(string $data)
 {
     $db = db();
