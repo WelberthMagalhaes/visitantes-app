@@ -71,6 +71,30 @@ function atualizarNomeVisitante($visitanteId, $nome)
     return ['status' => 'ok'];
 }
 
+function excluirVisita($visitaId)
+{
+    $db = db();
+
+    // Busca visitante_id antes de excluir
+    $stmt = $db->prepare("SELECT visitante_id FROM visitas WHERE id = :id");
+    $stmt->execute([':id' => $visitaId]);
+    $visita = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$visita) {
+        return ['status' => 'erro', 'mensagem' => 'Visita não encontrada'];
+    }
+
+    // Exclui a visita
+    $del = $db->prepare("DELETE FROM visitas WHERE id = :id");
+    $del->execute([':id' => $visitaId]);
+
+    // Atualiza contador de visitas do visitante
+    $upd = $db->prepare("UPDATE visitantes SET visitas = (SELECT COUNT(*) FROM visitas WHERE visitante_id = :vid) WHERE id = :vid");
+    $upd->execute([':vid' => $visita['visitante_id']]);
+
+    return ['status' => 'ok'];
+}
+
 function listarVisitantesPorData(string $data)
 {
     $db = db();

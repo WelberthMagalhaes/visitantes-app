@@ -111,6 +111,16 @@ if ($method === 'PUT' && preg_match('#^/interno/visitas/(\d+)$#', $uri, $matches
     exit;
 }
 
+// DELETE /interno/visitas/{id} -> excluir visita
+if ($method === 'DELETE' && preg_match('#^/interno/visitas/(\d+)$#', $uri, $matches)) {
+    exigirAutenticacaoInterna();
+
+    $visitaId = $matches[1];
+    $res = excluirVisita($visitaId);
+    echo json_encode($res);
+    exit;
+}
+
 // GET /interno/visitantes/all -> lista completa (exige autenticação)
 if ($method === 'GET' && $uri === '/interno/visitantes/all') {
     exigirAutenticacaoInterna();

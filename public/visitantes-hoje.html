@@ -117,6 +117,31 @@
       .btn-cancelar {
         background: #999 !important;
       }
+      .btn-excluir {
+        background: #f44336 !important;
+        margin-top: 20px;
+        width: 100%;
+      }
+      .confirm-box {
+        display: none;
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+      }
+      .confirm-box p {
+        margin: 0 0 10px 0;
+        color: #856404;
+        font-weight: bold;
+      }
+      .confirm-buttons {
+        display: flex;
+        gap: 10px;
+      }
+      .confirm-buttons button {
+        flex: 1;
+      }
     </style>
   </head>
   <body style="visibility: hidden">
@@ -206,6 +231,32 @@
             <button type="submit">Salvar</button>
           </div>
         </form>
+        <button
+          type="button"
+          class="btn-excluir"
+          onclick="mostrarConfirmacao()"
+        >
+          🗑️ Excluir Cadastro
+        </button>
+        <div id="confirmBox" class="confirm-box">
+          <p>⚠️ Tem certeza que deseja excluir este cadastro?</p>
+          <div class="confirm-buttons">
+            <button
+              type="button"
+              class="btn-cancelar"
+              onclick="esconderConfirmacao()"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn-excluir"
+              onclick="confirmarExclusao()"
+            >
+              Sim, Excluir
+            </button>
+          </div>
+        </div>
         <p id="editMsg" style="margin-top: 10px; text-align: center"></p>
       </div>
     </div>
@@ -404,6 +455,51 @@
 
       function fecharModal() {
         document.querySelector("#modalEditar").style.display = "none";
+        esconderConfirmacao();
+      }
+
+      function mostrarConfirmacao() {
+        document.querySelector("#confirmBox").style.display = "block";
+        document.querySelector("#editMsg").textContent = "";
+      }
+
+      function esconderConfirmacao() {
+        document.querySelector("#confirmBox").style.display = "none";
+      }
+
+      async function confirmarExclusao() {
+        const visitaId = document.querySelector("#editVisitaId").value;
+        const msg = document.querySelector("#editMsg");
+
+        esconderConfirmacao();
+        msg.textContent = "Excluindo...";
+        msg.style.color = "#666";
+
+        try {
+          const res = await fetch(
+            (BASE || "") + `/interno/visitas/${visitaId}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          if (res.ok) {
+            msg.textContent = "✓ Excluído com sucesso!";
+            msg.style.color = "green";
+
+            setTimeout(() => {
+              fecharModal();
+              carregarVisitantes();
+            }, 1000);
+          } else {
+            msg.textContent = "Erro ao excluir";
+            msg.style.color = "red";
+          }
+        } catch (err) {
+          console.error("Erro ao excluir:", err);
+          msg.textContent = "Erro ao excluir";
+          msg.style.color = "red";
+        }
       }
 
       // Fechar modal ao clicar fora
