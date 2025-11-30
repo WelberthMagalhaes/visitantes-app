@@ -60,7 +60,12 @@
         </div>
 
         <label for="telefone">Telefone</label>
-        <input id="telefone" name="telefone" />
+        <input
+          id="telefone"
+          name="telefone"
+          placeholder="(31) 98877-6655"
+          maxlength="15"
+        />
 
         <label for="acompanhantes">Acompanhantes</label>
         <input
@@ -145,6 +150,21 @@
         return getVisitantesLocal().filter((v) => v.nomeNorm.includes(q));
       }
 
+      // --------- Máscara de telefone
+      function mascaraTelefone(valor) {
+        valor = valor.replace(/\D/g, "");
+        if (valor.length <= 10) {
+          // Fixo: (31) 3524-4564
+          valor = valor.replace(/(\d{2})(\d)/, "($1) $2");
+          valor = valor.replace(/(\d{4})(\d)/, "$1-$2");
+        } else {
+          // Celular: (31) 98877-6655
+          valor = valor.replace(/(\d{2})(\d)/, "($1) $2");
+          valor = valor.replace(/(\d{5})(\d)/, "$1-$2");
+        }
+        return valor;
+      }
+
       // --------- UI autocomplete
       function setupAutoComplete() {
         const input = document.querySelector("#nome");
@@ -161,7 +181,8 @@
             item.textContent = `${v.nome} (${v.telefone || "-"}) - visitas: ${v.visitas || 1}`;
             item.onclick = () => {
               document.querySelector("#nome").value = v.nome;
-              document.querySelector("#telefone").value = v.telefone || "";
+              const telInput = document.querySelector("#telefone");
+              telInput.value = mascaraTelefone(v.telefone || "");
               sugestoes.innerHTML = "";
             };
             sugestoes.appendChild(item);
@@ -296,6 +317,12 @@
       // ---------- inicialização
       document.addEventListener("DOMContentLoaded", async () => {
         setupAutoComplete();
+
+        // Aplicar máscara no telefone
+        const telInput = document.querySelector("#telefone");
+        telInput.addEventListener("input", (e) => {
+          e.target.value = mascaraTelefone(e.target.value);
+        });
 
         // Verifica se já está autenticado
         const jaAutenticado = await verificarSessao();
