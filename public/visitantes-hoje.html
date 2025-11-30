@@ -117,9 +117,10 @@
         </div>
       </div>
 
-      <button onclick="carregarVisitantes()" style="margin-bottom: 20px">
+      <button id="btnAtualizar" onclick="carregarVisitantes()" style="margin-bottom: 20px">
         🔄 Atualizar
       </button>
+      <p id="atualizarMsg" style="text-align: center; color: #666; margin-top: 10px;"></p>
 
       <div id="listaVisitantes"></div>
     </div>
@@ -174,6 +175,15 @@
       async function carregarVisitantes(usarCache = false) {
         if (!autenticado) return;
 
+        const msg = document.querySelector("#atualizarMsg");
+        const btn = document.querySelector("#btnAtualizar");
+
+        if (!usarCache) {
+          msg.textContent = "Atualizando...";
+          msg.style.color = "#666";
+          btn.disabled = true;
+        }
+
         try {
           let data;
 
@@ -182,13 +192,30 @@
             dadosCache = null; // Limpa cache após usar
           } else {
             const res = await fetch((BASE || "") + `/interno/visitantes/hoje`);
-            if (!res.ok) return;
+            if (!res.ok) {
+              msg.textContent = "Erro ao atualizar";
+              msg.style.color = "red";
+              btn.disabled = false;
+              return;
+            }
             data = await res.json();
           }
 
           renderizarVisitantes(data);
+
+          if (!usarCache) {
+            msg.textContent = "✓ Atualizado com sucesso!";
+            msg.style.color = "green";
+            setTimeout(() => {
+              msg.textContent = "";
+            }, 3000);
+          }
         } catch (err) {
           console.error("Erro carregando visitantes:", err);
+          msg.textContent = "Erro ao atualizar";
+          msg.style.color = "red";
+        } finally {
+          btn.disabled = false;
         }
       }
 
