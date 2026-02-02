@@ -20,7 +20,15 @@ Sistema de cadastro de visitantes para igrejas, pronto para deploy no Render.com
 **Requisitos**: Docker e Docker Compose
 
 ```bash
-# Setup automático
+# 1. Clone o repositório
+git clone https://github.com/SEU_USUARIO/visitantes-app.git
+cd visitantes-app
+
+# 2. Configure as variáveis de ambiente
+cp .env.example .env
+# Edite o .env e defina suas credenciais
+
+# 3. Setup automático
 ./setup.sh
 
 # Ou manualmente:
@@ -30,7 +38,7 @@ docker-compose exec web php /var/www/html/database/criar_banco.php
 ```
 
 **Acesso**: http://localhost:8080/
-**Senha padrão**: `hope-recepcao523` (definida no `.env`)
+**Senha padrão**: Configure no `.env` (variável `SENHA_INTERNA`)
 
 ## 🚀 Deploy no Render.com
 
@@ -59,9 +67,16 @@ docker-compose exec web php /var/www/html/database/criar_banco.php
 4. **Configure Variáveis de Ambiente:**
    ```
    DATABASE_URL=postgresql://user:pass@host/db (cole a Internal Database URL)
-   API_KEY=sua_chave_secreta_aqui
-   SENHA_INTERNA=sua_senha_recepcao_aqui
+   API_KEY=sua_chave_secreta_aqui (gere com: openssl rand -hex 32)
+   SENHA_INTERNA=
+   DB_HOST=
+   DB_PORT=
+   DB_NAME=
+   DB_USER=
+   DB_PASS=
    ```
+
+   **⚠️ IMPORTANTE:** Nunca compartilhe essas credenciais publicamente!
 
 5. **Criar tabelas no banco:**
    - Após o deploy, execute o schema SQL manualmente no dashboard do Render
@@ -95,10 +110,14 @@ https://seu-app.onrender.com/api/visitantes?data=2024-11-26&api_key=SUA_CHAVE
 ## 🔒 Segurança
 
 - **API_KEY:** Protege endpoint externo (Holyrics). Aceita header `X-API-KEY` ou query param `api_key`
+  - Gere uma chave forte: `openssl rand -hex 32`
 - **SENHA_INTERNA:** Protege interface web da recepção via autenticação por sessão
 - **Validação:** Parâmetro `data` é obrigatório na API externa
 - **Sessões:** Interface web usa sessões PHP para manter login
 - **Backups:** PostgreSQL no Render tem backup automático (plano free: 7 dias)
+- **⚠️ NUNCA commite o arquivo `.env`** - Use `.env.example` como template
+
+Veja [SECURITY.md](SECURITY.md) para mais detalhes sobre segurança.
 
 ## 📈 Contabilização de Pessoas
 
