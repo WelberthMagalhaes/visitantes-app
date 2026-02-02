@@ -39,7 +39,7 @@ function require_api_key()
     if (!$expected || !$provided || !hash_equals($expected, $provided)) {
         http_response_code(401);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['erro' => 'API key inválida']);
+        echo json_encode(['erro' => 'unauthorized']);
         exit;
     }
 }

@@ -8,20 +8,22 @@ $method = $_SERVER['REQUEST_METHOD'];
 // responder JSON por padrão
 header('Content-Type: application/json; charset=utf-8');
 
-// === ROTA DE DEBUG (remover em produção) ===
-if ($method === 'GET' && $uri === '/debug/env') {
+
+
+
+// === ROTAS API (com API_KEY) - Para Holyrics e integrações externas ===
+
+// --- endpoint HEALTH ---
+if ($method === 'GET' && $uri === '/api/health') {
+    require_api_key();
+
     echo json_encode([
-        'SENHA_INTERNA' => getenv('SENHA_INTERNA') ?: 'NÃO DEFINIDA',
-        'SENHA_INTERNA_length' => strlen(getenv('SENHA_INTERNA') ?: ''),
-        'API_KEY' => getenv('API_KEY') ? 'DEFINIDA (' . strlen(getenv('API_KEY')) . ' chars)' : 'NÃO DEFINIDA',
-        'DB_HOST' => getenv('DB_HOST') ?: 'NÃO DEFINIDA',
-        'DB_NAME' => getenv('DB_NAME') ?: 'NÃO DEFINIDA',
-        'all_env_keys' => array_keys($_ENV)
+        'status' => 'ok',
+        'time' => date('c'),
+        'uptime' => time(), // apenas para identificar mudanças
     ]);
     exit;
 }
-
-// === ROTAS API (com API_KEY) - Para Holyrics e integrações externas ===
 
 // GET /api/visitantes?data=YYYY-MM-DD -> lista visitantes por data (exige API key)
 if ($method === 'GET' && $uri === '/api/visitantes') {
