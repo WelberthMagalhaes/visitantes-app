@@ -28,7 +28,6 @@ DB_PASS=
 
 Configure no repositório em **Settings → Secrets and variables → Actions**:
 
-- `RENDER_API_KEY`: Sua API key do Render
 - `RENDER_APP_URL`: URL da sua aplicação (ex: https://seu-app.onrender.com)
 
 ## Reportar Vulnerabilidades
