@@ -23,4 +23,4 @@ docker-compose exec web chmod 775 /var/www/html/database
 
 echo "✅ Setup concluído!"
 echo "🌐 Acesse: http://localhost:8080/"
-echo "🔑 Senha da recepção: hope-recepcao523"
+echo "🔑 Senha da recepção: (Configure no arquivo .env)"

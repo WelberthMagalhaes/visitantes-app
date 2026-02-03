@@ -15,8 +15,6 @@ header('Content-Type: application/json; charset=utf-8');
 
 // --- endpoint HEALTH ---
 if ($method === 'GET' && $uri === '/api/health') {
-    require_api_key();
-
     echo json_encode([
         'status' => 'ok',
         'time' => date('c'),
