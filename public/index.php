@@ -8,6 +8,11 @@ $method = $_SERVER['REQUEST_METHOD'];
 // responder JSON por padrão
 header('Content-Type: application/json; charset=utf-8');
 
+// Configuração de Erros (Produção)
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
+error_reporting(E_ALL);
+
 
 // === ROTAS API (com API_KEY) - Para Holyrics e integrações externas ===
 

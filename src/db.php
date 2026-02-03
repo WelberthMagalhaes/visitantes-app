@@ -16,8 +16,14 @@ function db()
         }
 
         $dsn = "pgsql:host={$host};port={$port};dbname={$dbname}";
-        $db = new PDO($dsn, $user, $pass);
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        try {
+            $db = new PDO($dsn, $user, $pass);
+            $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        } catch (PDOException $e) {
+            error_log("Erro de conexão com o banco: " . $e->getMessage());
+            throw new Exception('Erro interno ao conectar ao banco de dados.');
+        }
     }
 
     return $db;
