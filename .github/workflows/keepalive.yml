@@ -2,59 +2,23 @@ name: Keep Render Awake
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # DOMINGO (18:00 - 21:00 BRT) -> (21:00 UTC Dom - 00:00 UTC Seg)
+    - cron: '*/10 21-23 * * 0'
+    - cron: '10,20,30 0 * * 1'
+    
+    # TERÇA (19:00 - 21:00 BRT) -> (22:00 UTC Ter - 00:00 UTC Qua)
+    - cron: '*/10 22-23 * * 2'
+    - cron: '10,20,30 0 * * 3'
+    
+    # QUINTA (19:00 - 21:00 BRT) -> (22:00 UTC Qui - 00:00 UTC Sex)
+    - cron: '*/10 22-23 * * 4'
+    - cron: '10,20,30 0 * * 5'
+
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Determinar horário (UTC)
-        id: time
-        run: |
-          echo "hora=$(date -u +'%H')" >> $GITHUB_OUTPUT
-          echo "dia=$(date -u +'%u')" >> $GITHUB_OUTPUT
-
-      - name: Verificar se está no horário de culto (UTC)
-        id: allowed
-        run: |
-          HORA=${{ steps.time.outputs.hora }}
-          DIA=${{ steps.time.outputs.dia }}
-
-          # default
-          echo "permitido=false" >> $GITHUB_OUTPUT
-
-          # SEGUNDA (17–21 SP → 20–00 UTC)
-          # Stop at 21:00 SP (00:00 UTC) -> So HORA >= 20 covers 20, 21, 22, 23 UTC (17, 18, 19, 20 SP). 
-          # 21:00 SP is 00:00 UTC next day. We want to STOP then.
-          if [ "$DIA" -eq 1 ] && [ "$HORA" -ge 20 ]; then
-            echo "permitido=true" >> $GITHUB_OUTPUT; exit 0;
-          fi
-
-          # TERÇA (19–21 SP → 22–00 UTC)
-          if [ "$DIA" -eq 2 ] && [ "$HORA" -ge 22 ]; then
-            echo "permitido=true" >> $GITHUB_OUTPUT; exit 0;
-          fi
-
-          # QUINTA (19–21 SP → 22–00 UTC)
-          if [ "$DIA" -eq 4 ] && [ "$HORA" -ge 22 ]; then
-            echo "permitido=true" >> $GITHUB_OUTPUT; exit 0;
-          fi
-
-          # DOMINGO (18–22 SP → 21–01 UTC)
-          # Sunday 21, 22, 23 UTC (18, 19, 20 SP) AND Monday 00 UTC (21 SP)
-          if [ "$DIA" -eq 7 ] && [ "$HORA" -ge 21 ]; then
-            echo "permitido=true" >> $GITHUB_OUTPUT; exit 0;
-          fi
-          if [ "$DIA" -eq 1 ] && [ "$HORA" -eq 0 ]; then
-            echo "permitido=true" >> $GITHUB_OUTPUT; exit 0;
-          fi
-
-      - name: Fora do horário (ignorar)
-        if: steps.allowed.outputs.permitido == 'false'
-        run: echo "Fora do horário de culto."
-
       - name: Ping no Render
-        if: steps.allowed.outputs.permitido == 'true'
-        run: curl -s ${{ secrets.RENDER_APP_URL }}/api/health
+        run: curl -s --max-time 90 ${{ secrets.RENDER_APP_URL }}/api/health
