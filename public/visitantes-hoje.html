@@ -12,6 +12,11 @@
         border-radius: 8px;
         padding: 15px;
         margin: 10px 0;
+        font-size: 1em;
+      }
+      .visitante-card strong {
+        font-size: 1.3em;
+        margin-bottom: 5px;
       }
       .familia-card {
         background: #e8f4f8;
@@ -384,9 +389,9 @@
             card.className = "visitante-card";
             card.innerHTML = `
               <strong>${visitante.nome}</strong> ${badge}
-              ${visitante.acompanhantes > 0 ? `<br><small>👥 +${visitante.acompanhantes} acompanhante(s)</small>` : ""}
-              ${visitante.observacao ? `<br><small>📝 ${visitante.observacao}</small>` : ""}
-              <br><button class="btn-editar" onclick="window.currentVisitanteId=${visitante.visitante_id}; abrirModalEditar(${visitante.id}, '${visitante.nome.replace(/'/g, "\\'").replace(/"/g, "&quot;")}', ${visitante.acompanhantes || 0}, '${(visitante.observacao || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ")}')">Editar</button>
+              ${visitante.acompanhantes > 0 ? `<p>👥 +${visitante.acompanhantes} acompanhante(s)</p>` : ""}
+              ${visitante.observacao ? `<p>📝 ${visitante.observacao}</p>` : ""}
+              <button class="btn-editar" onclick="window.currentVisitanteId=${visitante.visitante_id}; abrirModalEditar(${visitante.id}, '${visitante.nome.replace(/'/g, "\\'").replace(/"/g, "&quot;")}', ${visitante.acompanhantes || 0}, '${(visitante.observacao || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ")}')">Editar</button>
             `;
             lista.appendChild(card);
           });

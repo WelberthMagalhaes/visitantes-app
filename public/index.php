@@ -9,8 +9,6 @@ $method = $_SERVER['REQUEST_METHOD'];
 header('Content-Type: application/json; charset=utf-8');
 
 
-
-
 // === ROTAS API (com API_KEY) - Para Holyrics e integrações externas ===
 
 // --- endpoint HEALTH ---
@@ -45,8 +43,6 @@ if ($method === 'GET' && $uri === '/api/visitantes') {
 if ($method === 'POST' && $uri === '/interno/login') {
     $dados = json_decode(file_get_contents('php://input'), true) ?? [];
     $senha = $dados['senha'] ?? null;
-
-
 
     if (verificarSessaoInterna($senha)) {
         echo json_encode(['status' => 'ok', 'message' => 'Autenticado']);
