@@ -63,7 +63,4 @@ jobs:
 
       - name: Ping no Render
         if: steps.allowed.outputs.permitido == 'true'
-        run: |
-          curl -s \
-            -H "X-API-KEY: ${{ secrets.RENDER_API_KEY }}" \
-            ${{ secrets.RENDER_APP_URL }}/api/health
+        run: curl -s ${{ secrets.RENDER_APP_URL }}/api/health
