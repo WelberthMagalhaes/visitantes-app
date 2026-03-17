@@ -112,6 +112,13 @@
         localStorage.setItem("visitantesLocal", JSON.stringify(lista));
       }
 
+      function formatarHora(data = new Date()) {
+        return data.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
       function getExclusoesLocal() {
         return JSON.parse(
           localStorage.getItem("exclusoesVisitantes") || "[]",
@@ -381,8 +388,8 @@
           syncStatus.style.color = "#666";
           const ok = await sincronizarDoBackend(true); // Usa cache da verificação
           if (ok) {
-            syncStatus.textContent = "✓ Atualizado";
-            syncStatus.style.color = "green";
+            syncStatus.textContent = `Última sincronização: ${formatarHora()}`;
+            syncStatus.style.color = "#666";
           } else {
             syncStatus.textContent = "Erro de sincronização";
             syncStatus.style.color = "red";
@@ -487,8 +494,8 @@
           if (ok) {
             syncMsg.textContent = "✓ Sincronizado com sucesso!";
             syncMsg.style.color = "green";
-            syncStatus.textContent = "✓ Atualizado";
-            syncStatus.style.color = "green";
+            syncStatus.textContent = `Última sincronização: ${formatarHora()}`;
+            syncStatus.style.color = "#666";
           } else {
             syncMsg.textContent = "Erro na sincronização";
             syncMsg.style.color = "red";

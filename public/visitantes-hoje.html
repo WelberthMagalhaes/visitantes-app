@@ -288,6 +288,13 @@
         localStorage.setItem("visitantesLocal", JSON.stringify(lista));
       }
 
+      function formatarHora(data = new Date()) {
+        return data.toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
       function getExclusoesLocal() {
         return JSON.parse(
           localStorage.getItem("exclusoesVisitantes") || "[]",
@@ -413,8 +420,6 @@
           msg.textContent = "Atualizando...";
           msg.style.color = "#666";
           btn.disabled = true;
-          syncStatus.textContent = "Sincronizando...";
-          syncStatus.style.color = "#666";
         }
 
         try {
@@ -436,8 +441,8 @@
 
           renderizarVisitantes(data);
 
-          syncStatus.textContent = "✓ Atualizado";
-          syncStatus.style.color = "green";
+          syncStatus.textContent = `Última atualização: ${formatarHora()}`;
+          syncStatus.style.color = "#666";
 
           if (!usarCache) {
             msg.textContent = "✓ Atualizado com sucesso!";
@@ -450,7 +455,7 @@
           console.error("Erro carregando visitantes:", err);
           msg.textContent = "Erro ao atualizar";
           msg.style.color = "red";
-          syncStatus.textContent = "Erro de sincronização";
+          syncStatus.textContent = `Erro na atualização (${formatarHora()})`;
           syncStatus.style.color = "red";
         } finally {
           btn.disabled = false;
