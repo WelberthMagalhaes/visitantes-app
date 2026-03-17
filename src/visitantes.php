@@ -89,7 +89,20 @@ function excluirVisita($visitaId)
     $del->execute([':id' => $visitaId]);
 
     // Atualiza contador de visitas e ultima_visita do visitante
-    $upd = $db->prepare("UPDATE visitantes SET visitas = (SELECT COUNT(*) FROM visitas WHERE visitante_id = :vid), ultima_visita = (SELECT MAX(data_visita) FROM visitas WHERE visitante_id = :vid) WHERE id = :vid");
+    $upd = $db->prepare("UPDATE visitantes
+        SET
+            visitas = (
+                SELECT COUNT(*)
+                FROM visitas
+                WHERE visitante_id = :vid
+            ),
+            ultima_visita = (
+                SELECT MAX(data_visita)
+                FROM visitas
+                WHERE visitante_id = :vid
+            )
+        WHERE id = :vid
+    ");
     $upd->execute([':vid' => $visita['visitante_id']]);
 
     return ['status' => 'ok'];
@@ -102,6 +115,7 @@ function listarVisitantesPorData(string $data)
         SELECT 
             v.id,
             v.nome,
+            vt.id as visita_id,
             vt.visitante_id,
             vt.acompanhantes,
             vt.observacao,

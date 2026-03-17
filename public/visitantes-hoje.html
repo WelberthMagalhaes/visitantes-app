@@ -436,7 +436,7 @@
 
           renderizarVisitantes(data);
 
-          syncStatus.textContent = "✓ Em dia";
+          syncStatus.textContent = "✓ Atualizado";
           syncStatus.style.color = "green";
 
           if (!usarCache) {
@@ -485,7 +485,7 @@
               <strong>${visitante.nome}</strong> ${badge}
               ${visitante.acompanhantes > 0 ? `<p>👥 +${visitante.acompanhantes} acompanhante(s)</p>` : ""}
               ${visitante.observacao ? `<p>📝 ${visitante.observacao}</p>` : ""}
-              <button class="btn-editar" onclick="window.currentVisitanteId=${visitante.visitante_id}; abrirModalEditar(${visitante.id}, '${visitante.nome.replace(/'/g, "\\'").replace(/"/g, "&quot;")}', ${visitante.acompanhantes || 0}, '${(visitante.observacao || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ")}')">Editar</button>
+              <button class="btn-editar" onclick="window.currentVisitanteId=${visitante.visitante_id}; abrirModalEditar(${visitante.visita_id}, '${visitante.nome.replace(/'/g, "\\'").replace(/"/g, "&quot;")}', ${visitante.acompanhantes || 0}, '${(visitante.observacao || "").replace(/'/g, "\\'").replace(/"/g, "&quot;").replace(/\n/g, " ")}')">Editar</button>
             `;
             lista.appendChild(card);
           });
