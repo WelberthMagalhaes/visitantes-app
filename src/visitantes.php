@@ -88,8 +88,8 @@ function excluirVisita($visitaId)
     $del = $db->prepare("DELETE FROM visitas WHERE id = :id");
     $del->execute([':id' => $visitaId]);
 
-    // Atualiza contador de visitas do visitante
-    $upd = $db->prepare("UPDATE visitantes SET visitas = (SELECT COUNT(*) FROM visitas WHERE visitante_id = :vid) WHERE id = :vid");
+    // Atualiza contador de visitas e ultima_visita do visitante
+    $upd = $db->prepare("UPDATE visitantes SET visitas = (SELECT COUNT(*) FROM visitas WHERE visitante_id = :vid), ultima_visita = (SELECT MAX(data_visita) FROM visitas WHERE visitante_id = :vid) WHERE id = :vid");
     $upd->execute([':vid' => $visita['visitante_id']]);
 
     return ['status' => 'ok'];

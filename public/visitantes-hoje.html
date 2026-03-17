@@ -208,6 +208,7 @@
         id="atualizarMsg"
         style="text-align: center; color: #666; margin-top: 10px"
       ></p>
+      <p id="syncStatus" style="text-align: center; color: #666"></p>
 
       <div id="listaVisitantes"></div>
     </div>
@@ -271,6 +272,91 @@
       let autenticado = false;
       let dadosCache = null;
 
+      // -------- localStorage helpers (mantém sincronizado com cadastro)
+      function normaliza(str) {
+        if (!str) return "";
+        return str
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9 ]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+
+      function salvarVisitantesLocal(lista) {
+        localStorage.setItem("visitantesLocal", JSON.stringify(lista));
+      }
+
+      function getExclusoesLocal() {
+        return JSON.parse(
+          localStorage.getItem("exclusoesVisitantes") || "[]",
+        );
+      }
+
+      function salvarExclusoesLocal(lista) {
+        localStorage.setItem("exclusoesVisitantes", JSON.stringify(lista));
+      }
+
+      function limparExclusoesAntigas() {
+        const hoje = new Date().toISOString().split("T")[0];
+        const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0];
+        const filtradas = getExclusoesLocal().filter(
+          (e) => e.data === hoje || e.data === ontem,
+        );
+        salvarExclusoesLocal(filtradas);
+        return filtradas;
+      }
+
+      function registrarExclusao(visitanteId, nome) {
+        const data = new Date().toISOString().split("T")[0];
+        const nomeNorm = normaliza(nome);
+        const atuais = limparExclusoesAntigas();
+
+        // evita duplicar entradas iguais do mesmo dia
+        const jaExiste = atuais.some(
+          (e) => e.data === data && e.visitante_id == visitanteId,
+        );
+        if (jaExiste) return;
+
+        atuais.push({
+          visitante_id: visitanteId,
+          nomeNorm,
+          data,
+          criado_em: Date.now(),
+        });
+        salvarExclusoesLocal(atuais);
+      }
+
+      async function atualizarLocalStorageDoServidor() {
+        try {
+          const res = await fetch((BASE || "") + "/interno/visitantes/all");
+          if (!res.ok) return false;
+          const listaServidor = await res.json();
+
+          const map = new Map();
+          listaServidor.forEach((v) => {
+            const nomeNorm = normaliza(v.nome);
+            map.set(nomeNorm, {
+              id: crypto.randomUUID(),
+              nome: v.nome,
+              nomeNorm,
+              telefone: v.telefone || "",
+              visitas: v.visitas || 1,
+              ultima_visita: v.ultima_visita || null,
+            });
+          });
+
+          salvarVisitantesLocal(Array.from(map.values()));
+          return true;
+        } catch (err) {
+          console.warn("Falha ao atualizar localStorage:", err);
+          return false;
+        }
+      }
+
       async function verificarSessao() {
         try {
           const res = await fetch((BASE || "") + "/interno/visitantes/hoje");
@@ -321,11 +407,14 @@
 
         const msg = document.querySelector("#atualizarMsg");
         const btn = document.querySelector("#btnAtualizar");
+        const syncStatus = document.querySelector("#syncStatus");
 
         if (!usarCache) {
           msg.textContent = "Atualizando...";
           msg.style.color = "#666";
           btn.disabled = true;
+          syncStatus.textContent = "Sincronizando...";
+          syncStatus.style.color = "#666";
         }
 
         try {
@@ -347,6 +436,9 @@
 
           renderizarVisitantes(data);
 
+          syncStatus.textContent = "✓ Em dia";
+          syncStatus.style.color = "green";
+
           if (!usarCache) {
             msg.textContent = "✓ Atualizado com sucesso!";
             msg.style.color = "green";
@@ -358,6 +450,8 @@
           console.error("Erro carregando visitantes:", err);
           msg.textContent = "Erro ao atualizar";
           msg.style.color = "red";
+          syncStatus.textContent = "Erro de sincronização";
+          syncStatus.style.color = "red";
         } finally {
           btn.disabled = false;
         }
@@ -448,6 +542,7 @@
       function abrirModalEditar(visitaId, nome, acompanhantes, observacao) {
         // Buscar visitante_id do card (será passado agora)
         const visitanteId = window.currentVisitanteId;
+        window.currentVisitanteNome = nome;
 
         document.querySelector("#editVisitaId").value = visitaId;
         document.querySelector("#editVisitanteId").value = visitanteId;
@@ -474,6 +569,8 @@
 
       async function confirmarExclusao() {
         const visitaId = document.querySelector("#editVisitaId").value;
+        const visitanteId = document.querySelector("#editVisitanteId").value;
+        const visitanteNome = window.currentVisitanteNome || "";
         const msg = document.querySelector("#editMsg");
 
         esconderConfirmacao();
@@ -485,16 +582,21 @@
             (BASE || "") + `/interno/visitas/${visitaId}`,
             {
               method: "DELETE",
-            }
+            },
           );
 
+          // TODO Se a exclusão dor bem sucedida, remover o usuário do localstorage para evitar que ele reapareça na próxima atualização. Atualmente, a lógica é "exclui do servidor -> depois baixa tudo do servidor", o que pode causar um pequeno delay até o visitante desaparecer da lista. Poderia ser melhorado para "exclui do servidor -> se sucesso, remove do local e da tela imediatamente", para uma experiência mais fluida.
           if (res.ok) {
             msg.textContent = "✓ Excluído com sucesso!";
             msg.style.color = "green";
 
-            setTimeout(() => {
+            setTimeout(async () => {
               fecharModal();
-              carregarVisitantes();
+              if (visitanteId) {
+                registrarExclusao(visitanteId, visitanteNome);
+              }
+              await atualizarLocalStorageDoServidor();
+              await carregarVisitantes();
             }, 1000);
           } else {
             msg.textContent = "Erro ao excluir";
@@ -550,7 +652,7 @@
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ nome }),
-                }
+                },
               );
 
               // Atualizar visita (acompanhantes e observação)
@@ -560,16 +662,17 @@
                   method: "PUT",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ acompanhantes, observacao }),
-                }
+                },
               );
 
               if (resNome.ok && resVisita.ok) {
                 msg.textContent = "✓ Salvo com sucesso!";
                 msg.style.color = "green";
 
-                setTimeout(() => {
+                setTimeout(async () => {
                   fecharModal();
-                  carregarVisitantes();
+                  await atualizarLocalStorageDoServidor();
+                  await carregarVisitantes();
                 }, 1000);
               } else {
                 msg.textContent = "Erro ao salvar";
