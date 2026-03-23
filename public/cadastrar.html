@@ -259,7 +259,7 @@
           resultados.slice(0, 10).forEach((v) => {
             const item = document.createElement("div");
             item.className = "sugestao-item";
-            item.textContent = `${v.nome} (${v.telefone || "-"}) - visitas: ${v.visitas || 1}`;
+            item.textContent = `${v.nome} (${v.telefone ? mascaraTelefone(v.telefone) : "-"}) - visitas: ${v.visitas || 1}`;
             item.onclick = () => {
               document.querySelector("#nome").value = v.nome;
               const telInput = document.querySelector("#telefone");
@@ -295,7 +295,7 @@
           resultados.slice(0, 10).forEach((v) => {
             const item = document.createElement("div");
             item.className = "sugestao-item";
-            item.textContent = `${v.nome} (${v.telefone || "-"}) - visitas: ${v.visitas || 1}`;
+            item.textContent = `${v.nome} (${v.telefone ? mascaraTelefone(v.telefone) : "-"}) - visitas: ${v.visitas || 1}`;
             item.onclick = () => {
               document.querySelector("#nome").value = v.nome;
               input.value = mascaraTelefone(v.telefone || "");
@@ -515,6 +515,14 @@
           e.preventDefault();
           let nome = document.querySelector("#nome").value.trim();
           let telefone = document.querySelector("#telefone").value.trim();
+          const telefoneNorm = normalizaTelefone(telefone);
+          if (!telefoneNorm) {
+            const ok = window.confirm(
+              "Visitante preferiu nao passar telefone? Voce pode continuar mesmo assim.",
+            );
+            if (!ok) return;
+          }
+          telefone = telefoneNorm;
           const acompanhantes =
             parseInt(document.querySelector("#acompanhantes").value) || 0;
           const observacao = document.querySelector("#observacao").value.trim();

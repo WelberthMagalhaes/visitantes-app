@@ -7,6 +7,7 @@ function cadastrarVisitanteBackend($nome, $telefone, $acompanhantes = 0, $observ
     $db = db();
     $nomeNorm = normaliza($nome);
     $telefoneNorm = normalizaTelefone($telefone ?? '');
+    $telefoneParaSalvar = $telefoneNorm !== '' ? $telefoneNorm : null;
     $hoje = date('Y-m-d');
 
     // buscar por telefone (prioridade) e depois por nome normalizado
@@ -51,7 +52,7 @@ function cadastrarVisitanteBackend($nome, $telefone, $acompanhantes = 0, $observ
 
             // Atualiza visitante existente
             $novoNome = !empty($nome) ? $nome : $encontrado['nome'];
-            $novoTelefone = !empty($telefone) ? $telefone : $encontrado['telefone'];
+            $novoTelefone = $telefoneNorm !== '' ? $telefoneNorm : $encontrado['telefone'];
 
             $upd = $db->prepare("UPDATE visitantes SET nome = :nome, telefone = :tel, visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
             $upd->execute([
@@ -68,7 +69,7 @@ function cadastrarVisitanteBackend($nome, $telefone, $acompanhantes = 0, $observ
     // Se não encontrou, cria novo visitante
     if (!$visitanteId) {
         $ins = $db->prepare("INSERT INTO visitantes (nome, telefone, visitas, ultima_visita, criado_em) VALUES (:n, :t, 1, :hoje, CURRENT_TIMESTAMP)");
-        $ins->execute([':n' => $nome, ':t' => $telefone, ':hoje' => $hoje]);
+        $ins->execute([':n' => $nome, ':t' => $telefoneParaSalvar, ':hoje' => $hoje]);
         $visitanteId = $db->lastInsertId();
     }
 
@@ -187,6 +188,7 @@ function sincronizarVisitantes(array $visitantesLocais)
 
         $nomeNorm = normaliza($nome);
         $telefoneNorm = normalizaTelefone($telefone);
+        $telefoneParaSalvar = $telefoneNorm !== '' ? $telefoneNorm : null;
 
         // Busca visitante no banco
         $stmt = $db->prepare("SELECT * FROM visitantes");
@@ -228,7 +230,7 @@ function sincronizarVisitantes(array $visitantesLocais)
 
             // Atualiza visitante
             $novoNome = !empty($nome) ? $nome : $encontrado['nome'];
-            $novoTelefone = !empty($telefone) ? $telefone : $encontrado['telefone'];
+            $novoTelefone = $telefoneNorm !== '' ? $telefoneNorm : $encontrado['telefone'];
             $upd = $db->prepare("UPDATE visitantes SET nome = :nome, telefone = :tel, visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
             $upd->execute([
                 ':nome' => $novoNome,
@@ -245,7 +247,7 @@ function sincronizarVisitantes(array $visitantesLocais)
         } else {
             // Insere novo visitante
             $ins = $db->prepare("INSERT INTO visitantes (nome, telefone, visitas, ultima_visita, criado_em) VALUES (:n, :t, 1, :hoje, CURRENT_TIMESTAMP)");
-            $ins->execute([':n' => $nome, ':t' => $telefone, ':hoje' => $hoje]);
+            $ins->execute([':n' => $nome, ':t' => $telefoneParaSalvar, ':hoje' => $hoje]);
             $novoId = $db->lastInsertId();
 
             // Cria registro de visita
