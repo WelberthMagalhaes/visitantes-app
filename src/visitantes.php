@@ -6,34 +6,63 @@ function cadastrarVisitanteBackend($nome, $telefone, $acompanhantes = 0, $observ
 {
     $db = db();
     $nomeNorm = normaliza($nome);
+    $telefoneNorm = normalizaTelefone($telefone ?? '');
     $hoje = date('Y-m-d');
 
-    // buscar por nome normalizado
+    // buscar por telefone (prioridade) e depois por nome normalizado
     $stmt = $db->prepare("SELECT * FROM visitantes");
     $stmt->execute();
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     $visitanteId = null;
     $tipo = 'novo';
+    $encontrado = null;
 
-    foreach ($rows as $r) {
-        if (normaliza($r['nome']) === $nomeNorm) {
+    if (!empty($telefoneNorm)) {
+        foreach ($rows as $r) {
+            $rTelefoneNorm = normalizaTelefone($r['telefone'] ?? '');
+            if ($rTelefoneNorm === $telefoneNorm) {
+                $encontrado = $r;
+                break;
+            }
+        }
+    }
+
+    if (!$encontrado) {
+        foreach ($rows as $r) {
+            $rNomeNorm = normaliza($r['nome']);
+            $rTelefoneNorm = normalizaTelefone($r['telefone'] ?? '');
+            $podeUsarNome = $rNomeNorm === $nomeNorm && (empty($telefoneNorm) || empty($rTelefoneNorm));
+            if ($podeUsarNome) {
+                $encontrado = $r;
+                break;
+            }
+        }
+    }
+
+    if ($encontrado) {
             // Verifica se já tem visita registrada hoje
             $checkVisita = $db->prepare("SELECT 1 FROM visitas WHERE visitante_id = :id AND data_visita = :hoje");
-            $checkVisita->execute([':id' => $r['id'], ':hoje' => $hoje]);
+            $checkVisita->execute([':id' => $encontrado['id'], ':hoje' => $hoje]);
 
             if ($checkVisita->fetch()) {
-                return ['tipo' => 'ja_cadastrado_hoje', 'id' => $r['id'], 'nome' => $r['nome']];
+                return ['tipo' => 'ja_cadastrado_hoje', 'id' => $encontrado['id'], 'nome' => $encontrado['nome']];
             }
 
             // Atualiza visitante existente
-            $upd = $db->prepare("UPDATE visitantes SET visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
-            $upd->execute([':data' => $hoje, ':id' => $r['id']]);
+            $novoNome = !empty($nome) ? $nome : $encontrado['nome'];
+            $novoTelefone = !empty($telefone) ? $telefone : $encontrado['telefone'];
 
-            $visitanteId = $r['id'];
+            $upd = $db->prepare("UPDATE visitantes SET nome = :nome, telefone = :tel, visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
+            $upd->execute([
+                ':nome' => $novoNome,
+                ':tel' => $novoTelefone,
+                ':data' => $hoje,
+                ':id' => $encontrado['id']
+            ]);
+
+            $visitanteId = $encontrado['id'];
             $tipo = 'retorno';
-            break;
-        }
     }
 
     // Se não encontrou, cria novo visitante
@@ -157,6 +186,7 @@ function sincronizarVisitantes(array $visitantesLocais)
         }
 
         $nomeNorm = normaliza($nome);
+        $telefoneNorm = normalizaTelefone($telefone);
 
         // Busca visitante no banco
         $stmt = $db->prepare("SELECT * FROM visitantes");
@@ -164,10 +194,25 @@ function sincronizarVisitantes(array $visitantesLocais)
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $encontrado = null;
-        foreach ($rows as $r) {
-            if (normaliza($r['nome']) === $nomeNorm) {
-                $encontrado = $r;
-                break;
+        if (!empty($telefoneNorm)) {
+            foreach ($rows as $r) {
+                $rTelefoneNorm = normalizaTelefone($r['telefone'] ?? '');
+                if ($rTelefoneNorm === $telefoneNorm) {
+                    $encontrado = $r;
+                    break;
+                }
+            }
+        }
+
+        if (!$encontrado) {
+            foreach ($rows as $r) {
+                $rNomeNorm = normaliza($r['nome']);
+                $rTelefoneNorm = normalizaTelefone($r['telefone'] ?? '');
+                $podeUsarNome = $rNomeNorm === $nomeNorm && (empty($telefoneNorm) || empty($rTelefoneNorm));
+                if ($podeUsarNome) {
+                    $encontrado = $r;
+                    break;
+                }
             }
         }
 
@@ -182,8 +227,15 @@ function sincronizarVisitantes(array $visitantesLocais)
             }
 
             // Atualiza visitante
-            $upd = $db->prepare("UPDATE visitantes SET visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
-            $upd->execute([':data' => $hoje, ':id' => $encontrado['id']]);
+            $novoNome = !empty($nome) ? $nome : $encontrado['nome'];
+            $novoTelefone = !empty($telefone) ? $telefone : $encontrado['telefone'];
+            $upd = $db->prepare("UPDATE visitantes SET nome = :nome, telefone = :tel, visitas = visitas + 1, ultima_visita = :data WHERE id = :id");
+            $upd->execute([
+                ':nome' => $novoNome,
+                ':tel' => $novoTelefone,
+                ':data' => $hoje,
+                ':id' => $encontrado['id']
+            ]);
 
             // Cria registro de visita
             $insVisita = $db->prepare("INSERT INTO visitas (visitante_id, data_visita, acompanhantes, observacao) VALUES (:vid, :data, 0, NULL)");

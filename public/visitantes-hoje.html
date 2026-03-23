@@ -284,6 +284,11 @@
           .trim();
       }
 
+      function normalizaTelefone(str) {
+        if (!str) return "";
+        return str.replace(/\D/g, "");
+      }
+
       function salvarVisitantesLocal(lista) {
         localStorage.setItem("visitantesLocal", JSON.stringify(lista));
       }
@@ -346,11 +351,14 @@
           const map = new Map();
           listaServidor.forEach((v) => {
             const nomeNorm = normaliza(v.nome);
-            map.set(nomeNorm, {
+            const telefoneNorm = normalizaTelefone(v.telefone || "");
+            const chave = telefoneNorm || nomeNorm;
+            map.set(chave, {
               id: crypto.randomUUID(),
               nome: v.nome,
               nomeNorm,
               telefone: v.telefone || "",
+              telefoneNorm,
               visitas: v.visitas || 1,
               ultima_visita: v.ultima_visita || null,
             });

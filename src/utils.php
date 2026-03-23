@@ -19,6 +19,12 @@ function normaliza(string $str): string
     return trim($str);
 }
 
+function normalizaTelefone(string $str): string
+{
+    $apenasDigitos = preg_replace('/\D+/', '', $str);
+    return $apenasDigitos ?? '';
+}
+
 function require_api_key()
 {
     // lê API_KEY do ambiente

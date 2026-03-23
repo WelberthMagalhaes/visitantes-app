@@ -22,6 +22,8 @@ CREATE INDEX IF NOT EXISTS idx_visitantes_ultima_visita ON visitantes(ultima_vis
 
 CREATE INDEX IF NOT EXISTS idx_visitantes_nome ON visitantes(nome);
 
+CREATE INDEX IF NOT EXISTS idx_visitantes_telefone ON visitantes(telefone);
+
 CREATE INDEX IF NOT EXISTS idx_visitas_data ON visitas(data_visita);
 
 CREATE INDEX IF NOT EXISTS idx_visitas_visitante ON visitas(visitante_id);
