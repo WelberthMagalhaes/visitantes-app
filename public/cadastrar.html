@@ -98,6 +98,24 @@
       <p id="msg"></p>
     </div>
 
+    <div id="telefoneModal" class="modal-overlay hidden" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="telefoneModalTitle" aria-describedby="telefoneModalDesc">
+        <h3 id="telefoneModalTitle">Sem telefone por enquanto?</h3>
+        <p id="telefoneModalDesc">
+          Tudo bem seguir sem telefone. Se o visitante lembrar depois, voce pode
+          atualizar em uma proxima visita.
+        </p>
+        <div class="modal-actions">
+          <button type="button" id="telefoneModalCancel" class="btn-secondary">
+            Voltar e informar telefone
+          </button>
+          <button type="button" id="telefoneModalConfirm" class="btn-primary">
+            Continuar sem telefone
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       // ---------- utils
       function normaliza(str) {
@@ -114,6 +132,52 @@
       function normalizaTelefone(str) {
         if (!str) return "";
         return str.replace(/\D/g, "");
+      }
+
+      function confirmarSemTelefone() {
+        const overlay = document.querySelector("#telefoneModal");
+        const btnConfirm = document.querySelector("#telefoneModalConfirm");
+        const btnCancel = document.querySelector("#telefoneModalCancel");
+        const prevFocus = document.activeElement;
+
+        return new Promise((resolve) => {
+          function cleanup(result) {
+            overlay.classList.add("hidden");
+            overlay.setAttribute("aria-hidden", "true");
+            btnConfirm.removeEventListener("click", onConfirm);
+            btnCancel.removeEventListener("click", onCancel);
+            overlay.removeEventListener("click", onOverlayClick);
+            document.removeEventListener("keydown", onKey);
+            if (prevFocus && typeof prevFocus.focus === "function") {
+              prevFocus.focus();
+            }
+            resolve(result);
+          }
+
+          function onConfirm() {
+            cleanup(true);
+          }
+
+          function onCancel() {
+            cleanup(false);
+          }
+
+          function onOverlayClick(e) {
+            if (e.target === overlay) cleanup(false);
+          }
+
+          function onKey(e) {
+            if (e.key === "Escape") cleanup(false);
+          }
+
+          overlay.classList.remove("hidden");
+          overlay.setAttribute("aria-hidden", "false");
+          btnConfirm.addEventListener("click", onConfirm);
+          btnCancel.addEventListener("click", onCancel);
+          overlay.addEventListener("click", onOverlayClick);
+          document.addEventListener("keydown", onKey);
+          btnConfirm.focus();
+        });
       }
 
       // -------- localStorage helpers
@@ -517,9 +581,7 @@
           let telefone = document.querySelector("#telefone").value.trim();
           const telefoneNorm = normalizaTelefone(telefone);
           if (!telefoneNorm) {
-            const ok = window.confirm(
-              "Visitante preferiu nao passar telefone? Voce pode continuar mesmo assim.",
-            );
+            const ok = await confirmarSemTelefone();
             if (!ok) return;
           }
           telefone = telefoneNorm;
